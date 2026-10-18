@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "summiteer_gametest",
+	"version": "1.0.0",
+	"name": "Summiteer game tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.gabbymaybelle.summiteer.SummiteerClientTest"
+		]
+	},
+	"depends": {
+		"summiteer": "*"
+	}
+}

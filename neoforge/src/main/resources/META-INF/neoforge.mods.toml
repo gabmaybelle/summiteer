@@ -1,0 +1,25 @@
+license = "MIT"
+issueTrackerURL = "https://github.com/gabmaybelle/summiteer/issues"
+
+[[mods]]
+modId = "summiteer"
+version = "${version}"
+displayName = "Summiteer"
+authors = "Gabby"
+description = '''Mountains worth climbing: wind, blizzards and avalanches up high, mountaineering gear, and three mountain temples with boss fights.'''
+displayURL = "https://github.com/gabmaybelle/summiteer"
+logoFile = "assets/summiteer/icon.png"
+
+[[dependencies.summiteer]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.3,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.summiteer]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.3,26.4)"
+ordering = "NONE"
+side = "BOTH"

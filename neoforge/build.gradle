@@ -1,0 +1,68 @@
+plugins {
+	id 'net.neoforged.moddev' version "${moddev_version}"
+}
+
+// The common sources are compiled straight into this jar, the same as the Fabric side.
+sourceSets.main {
+	java.srcDir project(':common').file('src/main/java')
+	resources.srcDir project(':common').file('src/main/resources')
+}
+// The in-game test (src/clienttest): part of the mod only in dev runs, never in the jar.
+sourceSets {
+	clienttest {
+		compileClasspath += sourceSets.main.output
+		runtimeClasspath += sourceSets.main.output
+	}
+}
+
+neoForge {
+	version = project.neoforge_version
+	addModdingDependenciesTo(sourceSets.clienttest)
+
+	mods {
+		"summiteer" {
+			sourceSet sourceSets.main
+			// The same mod as the main sources, so the test can reach the package's own classes.
+			sourceSet sourceSets.clienttest
+		}
+	}
+
+	runs {
+		client {
+			client()
+		}
+		server {
+			server()
+			programArgument '--nogui'
+		}
+		// `./gradlew :neoforge:runClientTest`: starts the game, makes a flat world, runs the checks in
+		// src/clienttest and closes. A failed check crashes the game, so the task fails. Needs a display.
+		clientTest {
+			client()
+			systemProperty 'summiteer.clienttest', 'true'
+			gameDirectory = project.file('build/run/clientTest')
+		}
+	}
+}
+
+dependencies {
+	// Tall-terrain runs: -PtestTectonic or -PtestTerralith, the same as the Fabric side.
+	if (project.hasProperty("testTectonic")) {
+		runtimeOnly "maven.modrinth:tectonic:${project.tectonic_neoforge_version}"
+	}
+	if (project.hasProperty("testTerralith")) {
+		runtimeOnly "maven.modrinth:terralith:${project.terralith_neoforge_version}"
+	}
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("META-INF/neoforge.mods.toml") {
+		expand "version": version
+	}
+}
+
+tasks.named('jar') { archiveBaseName = "${rootProject.name}-neoforge" }
+tasks.named('sourcesJar') { archiveBaseName = "${rootProject.name}-neoforge" }

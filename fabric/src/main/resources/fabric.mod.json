@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "summiteer",
+	"version": "${version}",
+	"name": "Summiteer",
+	"description": "Mountains worth climbing: wind, blizzards and avalanches up high, mountaineering gear, and three mountain temples with boss fights.",
+	"authors": [
+		"Gabby"
+	],
+	"contact": {
+		"homepage": "https://github.com/gabmaybelle/summiteer",
+		"sources": "https://github.com/gabmaybelle/summiteer",
+		"issues": "https://github.com/gabmaybelle/summiteer/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/summiteer/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.gabbymaybelle.summiteer.fabric.SummiteerFabric"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"fabric-api": "*",
+		"minecraft": "~26.3",
+		"java": ">=25"
+	}
+}
