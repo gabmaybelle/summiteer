@@ -1,0 +1,15 @@
+{
+	"required": true,
+	"package": "com.gabbymaybelle.summiteer.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [],
+	"client": [
+		"client.FogRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

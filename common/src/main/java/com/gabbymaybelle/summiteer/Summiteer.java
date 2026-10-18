@@ -1,6 +1,8 @@
 package com.gabbymaybelle.summiteer;
 
 import com.gabbymaybelle.summiteer.platform.Services;
+import com.gabbymaybelle.summiteer.weather.Weather;
+import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,5 +22,10 @@ public final class Summiteer {
 		Config.load();
 		LOGGER.info("Summiteer: ready on {} (high ground from {} blocks above sea level, summits from {})",
 				Services.PLATFORM.name(), Config.highAboveSeaLevel, Config.summitAboveSeaLevel);
+	}
+
+	/** Called by the loaders at the end of every server tick. */
+	public static void serverTick(MinecraftServer server) {
+		Weather.serverTick(server);
 	}
 }

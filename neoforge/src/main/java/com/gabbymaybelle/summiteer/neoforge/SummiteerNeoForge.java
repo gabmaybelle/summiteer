@@ -4,7 +4,9 @@ import com.gabbymaybelle.summiteer.Summiteer;
 import com.gabbymaybelle.summiteer.platform.Services;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
 /** The NeoForge entrypoint: everything happens in {@code common}. */
@@ -16,5 +18,6 @@ public class SummiteerNeoForge {
 		Summiteer.init();
 		modBus.addListener(RegisterEvent.class, platform::onRegister);
 		modBus.addListener(BuildCreativeModeTabContentsEvent.class, platform::onCreativeTab);
+		NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, event -> Summiteer.serverTick(event.getServer()));
 	}
 }

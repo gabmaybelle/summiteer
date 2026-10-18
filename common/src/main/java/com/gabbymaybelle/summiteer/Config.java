@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
@@ -26,10 +27,18 @@ public final class Config {
 	public static int highAboveSeaLevel = 70;
 	public static int summitAboveSeaLevel = 120;
 
+	// The weather up high, each with its own switch.
+	public static boolean wind = true;
+	public static boolean cold = true;
+	public static boolean whiteouts = true;
+
 	private static final Map<String, String> COMMENTS = new LinkedHashMap<>();
 	static {
 		COMMENTS.put("highAboveSeaLevel", "Where the treeline is: mountain biomes this many blocks above sea level count as high ground.");
 		COMMENTS.put("summitAboveSeaLevel", "Where the summits start, in any biome. Raise both for packs with very tall terrain.");
+		COMMENTS.put("wind", "Gusts above the treeline that push you (true or false). Crouch to brace, or get under a roof.");
+		COMMENTS.put("cold", "Freezing in snowstorms up high and on summits at night (true or false). A fire warms you up.");
+		COMMENTS.put("whiteouts", "Thick fog on the summits in a snowstorm (true or false). Only changes what you see.");
 	}
 
 	private Config() {
@@ -56,6 +65,9 @@ public final class Config {
 			highAboveSeaLevel = 70;
 			summitAboveSeaLevel = 120;
 		}
+		wind = readBool(props, "wind", true);
+		cold = readBool(props, "cold", true);
+		whiteouts = readBool(props, "whiteouts", true);
 		boolean missing = false;
 		for (String key : COMMENTS.keySet()) {
 			if (!props.containsKey(key)) {
@@ -72,6 +84,9 @@ public final class Config {
 		return switch (key) {
 			case "highAboveSeaLevel" -> Integer.toString(highAboveSeaLevel);
 			case "summitAboveSeaLevel" -> Integer.toString(summitAboveSeaLevel);
+			case "wind" -> Boolean.toString(wind);
+			case "cold" -> Boolean.toString(cold);
+			case "whiteouts" -> Boolean.toString(whiteouts);
 			default -> throw new IllegalArgumentException(key);
 		};
 	}
@@ -92,6 +107,19 @@ public final class Config {
 			Summiteer.LOGGER.warn("{} should be a whole number (got \"{}\"); using {}", key, raw, fallback);
 			return fallback;
 		}
+	}
+
+	private static boolean readBool(Properties props, String key, boolean fallback) {
+		String raw = props.getProperty(key);
+		if (raw == null) {
+			return fallback;
+		}
+		String value = raw.trim().toLowerCase(Locale.ROOT);
+		if (value.equals("true") || value.equals("false")) {
+			return Boolean.parseBoolean(value);
+		}
+		Summiteer.LOGGER.warn("{} should be true or false (got \"{}\"); using {}", key, raw, fallback);
+		return fallback;
 	}
 
 	/** Writes every setting, commented, keeping any keys we don't know, through a temp file. */

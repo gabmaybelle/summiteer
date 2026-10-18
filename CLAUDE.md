@@ -14,9 +14,17 @@ first, and add this session's row before ending.
   biome above the treeline) or `SUMMIT` (summit height, any biome). Heights are measured from the
   world's sea level and are settings; "mountain" is `#minecraft:is_mountain` or `#c:is_mountain`.
   **Never use a fixed Y**: terrain mods (Tectonic, Terralith, Amplified) make mountains much taller.
-- **Weather** (planned): one check per player per second (which zone, is a gust due); the server
-  decides wind and cold, the client draws the whiteout fog. Nothing scans the world.
-- **Cold** (planned): vanilla's freezing ticks, held off by **warmth**: each piece of the mountain
+- **Weather** (`weather/`, `client/Whiteout`): one look per player per second (zone, sheltered,
+  snowing, fire near); the server decides wind and cold, the client draws the whiteout fog from the
+  synced weather and biome (no packets). Nothing scans the world. `Wind` and `Cold` hold the rules,
+  free of the game, with unit tests; `Weather` applies them. Gusts are announced 2 s ahead (whoosh
+  and snowflakes from upwind), crouching takes three quarters off, a roof stops them; the wind
+  turns once every four days, the same for everyone. Cold: above the treeline in a snowstorm (not
+  under a roof), or on a summit at night; a fire or lit campfire within 3 blocks stops it.
+  Whiteout: summit plus snowstorm, fades over 3 s, only ever thickens the fog
+  (`mixin/client/FogRendererMixin`).
+- **Cold**: vanilla's freezing ticks (5 a second net, so about 28 s to fully frozen), held off by
+  **warmth** (planned, `Cold.perSecond(warmth)`: one point takes one off): each piece of the mountain
   clothes (beanie, parka, snow pants, wool socks; dyeable wool armour, leather-level protection) and
   mittens add some; campfires and fire warm you back up.
 - **Accessory slots** (decided 2026-10-18): Summiteer **requires** a slot mod for the clothing

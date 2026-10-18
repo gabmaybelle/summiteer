@@ -10,6 +10,9 @@ description = '''Mountains worth climbing: wind, blizzards and avalanches up hig
 displayURL = "https://github.com/gabmaybelle/summiteer"
 logoFile = "assets/summiteer/icon.png"
 
+[[mixins]]
+config = "summiteer.mixins.json"
+
 [[dependencies.summiteer]]
 modId = "neoforge"
 type = "required"
