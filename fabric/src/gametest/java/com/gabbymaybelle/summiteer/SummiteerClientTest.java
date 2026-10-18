@@ -31,6 +31,8 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			boolean loaded = world.getServer().computeOnServer(server -> FabricLoader.getInstance().isModLoaded(Summiteer.MOD_ID));
 			check(loaded, "the mod is loaded in a new world");
 			zones(world);
+			wind(ctx, world);
+			cold(ctx, world);
 		}
 		if (!failures.isEmpty()) {
 			throw new AssertionError(failures.size() + " check(s) failed:\n - " + String.join("\n - ", failures));
@@ -79,6 +81,107 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			String result = results.get(i);
 			check(result.startsWith(expected[i].name() + " "), "zone: expected " + expected[i] + " for" + result.substring(result.indexOf(' ')) + ", got " + result.substring(0, result.indexOf(' ')));
 		}
+	}
+
+	/** The summit test site: a stone platform at summit height, 21 blocks across, open to the sky. */
+	private static final int SITE = 10;
+	private final int[] site = new int[3];
+
+	/**
+	 * Builds the test site at summit height above the player and puts them in the middle of it in
+	 * survival (the weather leaves creative players alone), at noon in clear weather.
+	 */
+	private void buildSite(TestSingleplayerContext world) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+			BlockPos at = player.blockPosition();
+			site[0] = at.getX();
+			site[1] = player.level().getSeaLevel() + Config.summitAboveSeaLevel + 2;
+			site[2] = at.getZ();
+			command(server, "fill " + box(0, 0) + " minecraft:stone");
+			command(server, "gamemode survival @a");
+			command(server, "time set noon");
+			command(server, "weather clear");
+		});
+		standInTheMiddle(world);
+	}
+
+	private void standInTheMiddle(TestSingleplayerContext world) {
+		world.getServer().runOnServer(server -> {
+			command(server, "tp @a " + site[0] + ".5 " + (site[1] + 1) + " " + site[2] + ".5");
+			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+			player.setDeltaMovement(0, 0, 0);
+			player.setTicksFrozen(0);
+		});
+	}
+
+	/** Puts a stone roof over the site (dy 4) or takes it off. */
+	private void roof(TestSingleplayerContext world, boolean on) {
+		world.getServer().runOnServer(server -> command(server, "fill " + box(4, 4) + (on ? " minecraft:stone" : " minecraft:air")));
+	}
+
+	private String box(int dyFrom, int dyTo) {
+		return (site[0] - SITE) + " " + (site[1] + dyFrom) + " " + (site[2] - SITE) + " " + (site[0] + SITE) + " " + (site[1] + dyTo) + " " + (site[2] + SITE);
+	}
+
+	/** How far the player has moved sideways from the middle of the site, in blocks. */
+	private double drift(TestSingleplayerContext world) {
+		return world.getServer().computeOnServer(server -> {
+			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+			return Math.hypot(player.getX() - (site[0] + 0.5), player.getZ() - (site[2] + 0.5));
+		});
+	}
+
+	private int frozen(TestSingleplayerContext world) {
+		return world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().getFirst().getTicksFrozen());
+	}
+
+	/**
+	 * Wind: standing still on the summit in the open, gusts (every 8 to 16 seconds) push the player
+	 * off the spot; under a roof, nothing moves them. 20 seconds each.
+	 */
+	private void wind(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		buildSite(world);
+		ctx.waitTicks(400);
+		double open = drift(world);
+		check(open > 0.4, "wind: gusts push you on an open summit (moved " + String.format("%.2f", open) + " blocks)");
+
+		roof(world, true);
+		standInTheMiddle(world);
+		ctx.waitTicks(400);
+		double sheltered = drift(world);
+		check(sheltered < 0.1, "wind: no gusts under a roof (moved " + String.format("%.2f", sheltered) + " blocks)");
+		roof(world, false);
+	}
+
+	/**
+	 * Cold: in a snowstorm on a frozen summit the player starts to freeze; under a roof they don't.
+	 * The wind is switched off meanwhile so it can't blow them off the site.
+	 */
+	private void cold(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		Config.wind = false;
+		world.getServer().runOnServer(server -> {
+			command(server, "fillbiome " + (site[0] - SITE) + " " + (site[1] - 2) + " " + (site[2] - SITE) + " "
+					+ (site[0] + SITE) + " " + (site[1] + 12) + " " + (site[2] + SITE) + " minecraft:frozen_peaks");
+			command(server, "weather rain");
+		});
+		standInTheMiddle(world);
+		ctx.waitTicks(300);
+		int open = frozen(world);
+		check(open >= 40, "cold: a snowstorm on the summit freezes you (frozen " + open + " of 140 after 15 s)");
+
+		roof(world, true);
+		standInTheMiddle(world);
+		ctx.waitTicks(200);
+		int sheltered = frozen(world);
+		check(sheltered == 0, "cold: under a roof the snowstorm doesn't freeze you (frozen " + sheltered + ")");
+		roof(world, false);
+		world.getServer().runOnServer(server -> command(server, "weather clear"));
+		Config.wind = true;
+	}
+
+	private static void command(net.minecraft.server.MinecraftServer server, String command) {
+		server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), command);
 	}
 
 	private void check(boolean ok, String what) {
