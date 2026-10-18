@@ -26,3 +26,11 @@ type = "required"
 versionRange = "[26.3,26.4)"
 ordering = "NONE"
 side = "BOTH"
+
+# The mittens go in Curios' hands slot.
+[[dependencies.summiteer]]
+modId = "curios"
+type = "required"
+versionRange = "[17.0.0-beta.3,)"
+ordering = "NONE"
+side = "BOTH"

@@ -1,8 +1,11 @@
 package com.gabbymaybelle.summiteer;
 
 import com.gabbymaybelle.summiteer.client.Whiteout;
+import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
+import eu.pb4.trinkets.api.TrinketInventory;
+import eu.pb4.trinkets.api.TrinketsApi;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -14,6 +17,10 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * The mod in a real game. Run with {@code ./gradlew :fabric:runClientGameTest}; screenshots land
@@ -34,6 +41,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			zones(world);
 			wind(ctx, world);
 			cold(ctx, world);
+			warmth(ctx, world);
 		}
 		if (!failures.isEmpty()) {
 			throw new AssertionError(failures.size() + " check(s) failed:\n - " + String.join("\n - ", failures));
@@ -201,6 +209,87 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		ctx.waitTicks(200);
 		float out = ctx.computeOnClient(client -> Whiteout.amount());
 		check(out <= 0.01F, "whiteout: the fog lifts when the storm ends (faded in " + out + ")");
+	}
+
+	/**
+	 * Warmth: back in the snowstorm on the summit, the player dresses one piece at a time (beanie,
+	 * parka, snow pants, wool socks, then mittens in Trinkets Updated's glove slot) and freezes for
+	 * 10 seconds in each: every piece freezes them slower, and the full set stops it. Then, in
+	 * nothing but leather boots (vanilla's freeze-proof leather), being fully frozen still hurts.
+	 */
+	private void warmth(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		Config.wind = false;
+		world.getServer().runOnServer(server -> command(server, "weather rain"));
+		String[] dressed = { "nothing", "a beanie", "a beanie and parka", "a beanie, parka and snow pants",
+				"all four clothes", "all four clothes and mittens" };
+		int[] frozen = new int[dressed.length];
+		for (int step = 0; step < dressed.length; step++) {
+			int pieces = step;
+			world.getServer().runOnServer(server -> dress(server.getPlayerList().getPlayers().getFirst(), pieces));
+			standInTheMiddle(world);
+			ctx.waitTicks(200);
+			frozen[step] = frozen(world);
+			Summiteer.LOGGER.info("[test] wearing {}: frozen {} after 10 s", dressed[step], frozen[step]);
+		}
+		check(frozen[0] >= 30, "warmth: with nothing on you freeze (frozen " + frozen[0] + " after 10 s)");
+		for (int step = 1; step < dressed.length - 1; step++) {
+			check(frozen[step] < frozen[step - 1], "warmth: wearing " + dressed[step] + " freezes you slower than " + dressed[step - 1]
+					+ " (frozen " + frozen[step] + " against " + frozen[step - 1] + ")");
+		}
+		int last = dressed.length - 1;
+		check(frozen[last] == 0, "warmth: " + dressed[last] + " keep the cold off (frozen " + frozen[last] + ")");
+
+		// Leather: vanilla makes it freeze-proof, but up high only warmth counts.
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+			dress(player, 0);
+			player.setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
+		});
+		standInTheMiddle(world);
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+			player.setTicksFrozen(player.getTicksRequiredToFreeze() + 10);
+			player.setHealth(player.getMaxHealth());
+			// Hungry enough not to heal, so the freeze damage shows.
+			player.getFoodData().setFoodLevel(10);
+			command(server, "difficulty normal");
+		});
+		ctx.waitTicks(100);
+		float health = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().getFirst().getHealth());
+		check(health < 20.0F, "warmth: leather boots don't stop the cold hurting up high (health " + health + " of 20 after 5 s fully frozen)");
+
+		world.getServer().runOnServer(server -> {
+			dress(server.getPlayerList().getPlayers().getFirst(), 0);
+			server.getPlayerList().getPlayers().getFirst().setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
+			server.getPlayerList().getPlayers().getFirst().getFoodData().setFoodLevel(20);
+			command(server, "weather clear");
+		});
+		Config.wind = true;
+	}
+
+	/** Dresses the player in the first {@code pieces} of: beanie, parka, snow pants, wool socks, mittens. */
+	private void dress(ServerPlayer player, int pieces) {
+		EquipmentSlot[] slots = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
+		Item[] clothes = { Clothes.BEANIE.get(), Clothes.PARKA.get(), Clothes.SNOW_PANTS.get(), Clothes.WOOL_SOCKS.get() };
+		for (int i = 0; i < slots.length; i++) {
+			player.setItemSlot(slots[i], i < pieces ? new ItemStack(clothes[i]) : ItemStack.EMPTY);
+		}
+		TrinketInventory gloves = gloveSlot(player);
+		ItemStack mittens = new ItemStack(Clothes.MITTENS.get());
+		if (pieces > 4) {
+			check(gloves.slotType().validatorCheck(mittens, gloves.getOrCreateSlotAccess(0), player), "mittens: they fit Trinkets Updated's glove slot");
+		}
+		gloves.setItem(0, pieces > 4 ? mittens : ItemStack.EMPTY);
+	}
+
+	/** Trinkets Updated's glove slot on the main hand. */
+	private TrinketInventory gloveSlot(ServerPlayer player) {
+		for (TrinketInventory inventory : TrinketsApi.getAttachment(player).getInventories().values()) {
+			if (inventory.slotType().group().equals("hand") && inventory.slotType().getId().equals("glove")) {
+				return inventory;
+			}
+		}
+		throw new AssertionError("Trinkets Updated gave the player no hand/glove slot: " + TrinketsApi.getAttachment(player).getInventories().keySet());
 	}
 
 	private static void command(net.minecraft.server.MinecraftServer server, String command) {

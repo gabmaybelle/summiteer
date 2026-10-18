@@ -1,6 +1,7 @@
 package com.gabbymaybelle.summiteer.weather;
 
 import com.gabbymaybelle.summiteer.Config;
+import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.util.HashMap;
@@ -32,7 +33,8 @@ public final class Weather {
 	}
 
 	private static final Map<UUID, Gust> GUSTS = new HashMap<>();
-	private static final Set<UUID> FREEZING = new HashSet<>();
+	/** Players out in the cold, with how fast they freeze (per second, after their warmth). */
+	private static final Map<UUID, Integer> FREEZING = new HashMap<>();
 
 	/** How far around a player a fire or lit campfire keeps the cold off. */
 	private static final int FIRE_REACH = 3;
@@ -57,13 +59,14 @@ public final class Weather {
 				look(level, player, now);
 			}
 			tickGust(level, player, now);
-			if (FREEZING.contains(id)) {
-				freeze(player, now);
+			Integer perSecond = FREEZING.get(id);
+			if (perSecond != null) {
+				freeze(player, perSecond, now);
 			}
 		}
 		// Forget players who left or changed dimension.
 		GUSTS.keySet().retainAll(present);
-		FREEZING.retainAll(present);
+		FREEZING.keySet().retainAll(present);
 	}
 
 	/** The once-a-second look at one player: schedules or calls off gusts, starts or stops the cold. */
@@ -86,7 +89,7 @@ public final class Weather {
 				&& Cold.isCold(zone, storm && !sheltered, level.isDarkOutside())
 				&& !nearFire(level, pos);
 		if (cold) {
-			FREEZING.add(id);
+			FREEZING.put(id, Cold.perSecond(Clothes.warmth(player)));
 		} else {
 			FREEZING.remove(id);
 		}
@@ -135,13 +138,23 @@ public final class Weather {
 	/**
 	 * Adds freezing for a player in the cold. Vanilla thaws everyone out by 2 a tick when they
 	 * aren't in powder snow, so this adds those 2 back every tick, plus the cold's own rate spread
-	 * over the second. The frost on screen and the freeze damage are vanilla's.
+	 * over the second. Dressed warmly enough (a rate of 0), vanilla's thaw is left alone, so you
+	 * warm back up. The frost on screen and the freeze damage are vanilla's.
+	 *
+	 * <p>Vanilla never freeze-damages anyone wearing leather (the {@code freeze_immune_wearables}
+	 * tag). That is for powder snow, which stays vanilla's; up high only warmth counts, so here the
+	 * damage is dealt the way vanilla would deal it (1 every 2 seconds once fully frozen).
 	 */
-	private static void freeze(ServerPlayer player, long now) {
-		int perSecond = Cold.perSecond(0);
-		int extra = perSecond == 0 ? 0 : (Math.floorMod(now, 20) < perSecond ? 1 : 0);
+	private static void freeze(ServerPlayer player, int perSecond, long now) {
+		if (perSecond == 0) {
+			return;
+		}
+		int extra = Math.floorMod(now, 20) < perSecond ? 1 : 0;
 		int cap = player.getTicksRequiredToFreeze() + 20;
 		player.setTicksFrozen(Math.min(cap, player.getTicksFrozen() + 2 + extra));
+		if (!player.canFreeze() && player.isFullyFrozen() && player.tickCount % 40 == 0) {
+			player.hurtServer(player.level(), player.damageSources().freeze(), 1.0F);
+		}
 	}
 
 	/** Under a roof of any kind: nothing between the player's head and the sky. */

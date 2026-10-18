@@ -6,6 +6,7 @@ import static com.gabbymaybelle.summiteer.ClientTest.run;
 import static com.gabbymaybelle.summiteer.ClientTest.waitTicks;
 
 import com.gabbymaybelle.summiteer.client.Whiteout;
+import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
@@ -14,8 +15,14 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.ModList;
+import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.CuriosSlotTypes;
 
 /**
  * The NeoForge jar's in-game test: the same checks as the Fabric game test (fabric/src/gametest),
@@ -69,6 +76,7 @@ final class SummiteerClientTest {
 
 		wind();
 		cold();
+		warmth();
 	}
 
 	/**
@@ -148,6 +156,83 @@ final class SummiteerClientTest {
 		run(mc -> onServer(mc, server -> serverCommand(server, "weather clear")));
 		waitTicks(200);
 		run(mc -> check(Whiteout.amount() <= 0.01F, "Whiteout: the fog didn't lift when the storm ended (faded in " + Whiteout.amount() + ")"));
+	}
+
+	private static final String[] DRESSED = { "nothing", "a beanie", "a beanie and parka", "a beanie, parka and snow pants",
+			"all four clothes", "all four clothes and mittens" };
+	private static final int[] FROZEN = new int[DRESSED.length];
+
+	/**
+	 * Warmth: back in the snowstorm on the summit, the player dresses one piece at a time (beanie,
+	 * parka, snow pants, wool socks, then mittens in Curios' hands slot) and freezes for 10 seconds
+	 * in each: every piece freezes them slower, and the full set stops it. Then, in nothing but
+	 * leather boots (vanilla's freeze-proof leather), being fully frozen still hurts.
+	 */
+	private static void warmth() {
+		run(mc -> onServer(mc, server -> {
+			Config.wind = false;
+			serverCommand(server, "weather rain");
+		}));
+		for (int step = 0; step < DRESSED.length; step++) {
+			int pieces = step;
+			run(mc -> onServer(mc, server -> dress(player(server), pieces)));
+			standInTheMiddle();
+			waitTicks(200);
+			run(mc -> onServer(mc, server -> {
+				FROZEN[pieces] = player(server).getTicksFrozen();
+				Summiteer.LOGGER.info("[test] wearing {}: frozen {} after 10 s", DRESSED[pieces], FROZEN[pieces]);
+			}));
+		}
+		run(mc -> {
+			check(FROZEN[0] >= 30, "Warmth: with nothing on you didn't freeze (frozen " + FROZEN[0] + " after 10 s)");
+			for (int step = 1; step < DRESSED.length - 1; step++) {
+				check(FROZEN[step] < FROZEN[step - 1], "Warmth: wearing " + DRESSED[step] + " didn't freeze you slower than " + DRESSED[step - 1]
+						+ " (frozen " + FROZEN[step] + " against " + FROZEN[step - 1] + ")");
+			}
+			int last = DRESSED.length - 1;
+			check(FROZEN[last] == 0, "Warmth: " + DRESSED[last] + " didn't keep the cold off (frozen " + FROZEN[last] + ")");
+		});
+
+		// Leather: vanilla makes it freeze-proof, but up high only warmth counts.
+		run(mc -> onServer(mc, server -> {
+			dress(player(server), 0);
+			player(server).setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
+		}));
+		standInTheMiddle();
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setTicksFrozen(player.getTicksRequiredToFreeze() + 10);
+			player.setHealth(player.getMaxHealth());
+			// Hungry enough not to heal, so the freeze damage shows.
+			player.getFoodData().setFoodLevel(10);
+			serverCommand(server, "difficulty normal");
+		}));
+		waitTicks(100);
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			float health = player.getHealth();
+			check(health < 20.0F, "Warmth: leather boots stopped the cold hurting up high (health " + health + " of 20 after 5 s fully frozen)");
+			player.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
+			player.getFoodData().setFoodLevel(20);
+			serverCommand(server, "weather clear");
+			Config.wind = true;
+		}));
+	}
+
+	/** Dresses the player in the first {@code pieces} of: beanie, parka, snow pants, wool socks, mittens. */
+	private static void dress(ServerPlayer player, int pieces) {
+		EquipmentSlot[] slots = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
+		Item[] clothes = { Clothes.BEANIE.get(), Clothes.PARKA.get(), Clothes.SNOW_PANTS.get(), Clothes.WOOL_SOCKS.get() };
+		for (int i = 0; i < slots.length; i++) {
+			player.setItemSlot(slots[i], i < pieces ? new ItemStack(clothes[i]) : ItemStack.EMPTY);
+		}
+		ItemStack mittens = new ItemStack(Clothes.MITTENS.get());
+		if (pieces > 4) {
+			check(CuriosSlotTypes.getItemSlotTypes(mittens, player).containsKey("hands"), "Mittens: they don't fit Curios' hands slot");
+		}
+		var curios = CuriosApi.getCuriosInventory(player).orElseThrow(() -> new AssertionError("Curios gave the player no slots"));
+		check(curios.getStacksHandler("hands").isPresent(), "Mittens: Curios gave the player no hands slot (slots: " + curios.getCurios().keySet() + ")");
+		curios.setEquippedCurio("hands", 0, pieces > 4 ? mittens : ItemStack.EMPTY);
 	}
 
 	private static void standInTheMiddle() {

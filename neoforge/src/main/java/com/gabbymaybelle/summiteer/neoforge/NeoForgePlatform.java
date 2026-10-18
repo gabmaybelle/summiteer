@@ -4,17 +4,21 @@ import com.gabbymaybelle.summiteer.platform.Platform;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
+import top.theillusivec4.curios.api.CuriosApi;
 
 /**
  * NeoForge only lets mods register during its registry events, so everything common code
@@ -75,6 +79,11 @@ public class NeoForgePlatform implements Platform {
 	@Override
 	public void addToCreativeTab(ResourceKey<CreativeModeTab> tab, Supplier<? extends ItemLike> item) {
 		tabEntries.add(new TabEntry(tab, item));
+	}
+
+	@Override
+	public boolean wearsAccessory(LivingEntity entity, Predicate<ItemStack> test) {
+		return CuriosApi.getCuriosInventory(entity).map(curios -> curios.isEquipped(test)).orElse(false);
 	}
 
 	void onRegister(RegisterEvent event) {

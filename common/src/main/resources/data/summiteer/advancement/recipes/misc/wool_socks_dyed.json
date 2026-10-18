@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_wool_socks": {
+      "conditions": {
+        "items": [
+          {
+            "items": "summiteer:wool_socks"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipes": "summiteer:wool_socks_dyed"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_wool_socks"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "summiteer:wool_socks_dyed"
+    ]
+  }
+}

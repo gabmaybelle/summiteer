@@ -1,11 +1,14 @@
 package com.gabbymaybelle.summiteer.platform;
 
 import java.nio.file.Path;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 
 /**
@@ -32,4 +35,10 @@ public interface Platform {
 
 	/** Puts an item in one of the vanilla creative tabs. */
 	void addToCreativeTab(ResourceKey<CreativeModeTab> tab, Supplier<? extends ItemLike> item);
+
+	/**
+	 * Whether something worn in an accessory slot passes the test: Trinkets Updated's slots on
+	 * Fabric, Curios' on NeoForge (one of them is required, so this always has slots to look in).
+	 */
+	boolean wearsAccessory(LivingEntity entity, Predicate<ItemStack> test);
 }

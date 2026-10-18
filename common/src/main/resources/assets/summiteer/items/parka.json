@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "summiteer:item/parka",
+    "tints": [
+      {
+        "type": "minecraft:dye",
+        "default": -1647157
+      }
+    ]
+  }
+}

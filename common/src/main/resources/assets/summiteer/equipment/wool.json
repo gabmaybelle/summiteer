@@ -1,0 +1,20 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "dyeable": {
+          "color_when_undyed": -1647157
+        },
+        "texture": "summiteer:wool"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "dyeable": {
+          "color_when_undyed": -1647157
+        },
+        "texture": "summiteer:wool"
+      }
+    ]
+  }
+}

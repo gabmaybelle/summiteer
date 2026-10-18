@@ -1,7 +1,9 @@
 package com.gabbymaybelle.summiteer.fabric;
 
 import com.gabbymaybelle.summiteer.platform.Platform;
+import eu.pb4.trinkets.api.TrinketsApi;
 import java.nio.file.Path;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -9,7 +11,9 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 
 public class FabricPlatform implements Platform {
@@ -39,5 +43,10 @@ public class FabricPlatform implements Platform {
 	@Override
 	public void addToCreativeTab(ResourceKey<CreativeModeTab> tab, Supplier<? extends ItemLike> item) {
 		CreativeModeTabEvents.modifyOutputEvent(tab).register(output -> output.accept(item.get()));
+	}
+
+	@Override
+	public boolean wearsAccessory(LivingEntity entity, Predicate<ItemStack> test) {
+		return TrinketsApi.getAttachment(entity).isEquipped(test);
 	}
 }

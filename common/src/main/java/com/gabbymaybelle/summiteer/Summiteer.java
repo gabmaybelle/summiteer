@@ -1,7 +1,9 @@
 package com.gabbymaybelle.summiteer;
 
+import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.platform.Services;
 import com.gabbymaybelle.summiteer.weather.Weather;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,8 +22,14 @@ public final class Summiteer {
 
 	public static void init() {
 		Config.load();
+		Clothes.init();
 		LOGGER.info("Summiteer: ready on {} (high ground from {} blocks above sea level, summits from {})",
 				Services.PLATFORM.name(), Config.highAboveSeaLevel, Config.summitAboveSeaLevel);
+	}
+
+	/** An id in Summiteer's own namespace. */
+	public static Identifier id(String path) {
+		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
 
 	/** Called by the loaders at the end of every server tick. */

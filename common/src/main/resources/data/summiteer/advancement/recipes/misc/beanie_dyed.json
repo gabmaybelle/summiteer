@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_beanie": {
+      "conditions": {
+        "items": [
+          {
+            "items": "summiteer:beanie"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipes": "summiteer:beanie_dyed"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_beanie"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "summiteer:beanie_dyed"
+    ]
+  }
+}

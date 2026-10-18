@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_parka": {
+      "conditions": {
+        "items": [
+          {
+            "items": "summiteer:parka"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipes": "summiteer:parka_dyed"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_parka"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "summiteer:parka_dyed"
+    ]
+  }
+}
