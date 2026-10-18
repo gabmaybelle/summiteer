@@ -5,6 +5,7 @@ import static com.gabbymaybelle.summiteer.ClientTest.createWorld;
 import static com.gabbymaybelle.summiteer.ClientTest.run;
 import static com.gabbymaybelle.summiteer.ClientTest.waitTicks;
 
+import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
@@ -87,7 +88,9 @@ final class SummiteerClientTest {
 			serverCommand(server, "weather clear");
 		}));
 		standInTheMiddle();
-		waitTicks(400);
+		waitTicks(20);
+		ClientTest.screenshot();
+		waitTicks(380);
 		run(mc -> onServer(mc, server -> {
 			double open = drift(server);
 			check(open > 0.4, "Wind: gusts didn't push you on an open summit (moved " + String.format("%.2f", open) + " blocks)");
@@ -126,9 +129,25 @@ final class SummiteerClientTest {
 			int sheltered = player(server).getTicksFrozen();
 			check(sheltered == 0, "Cold: the snowstorm froze you under a roof (frozen " + sheltered + ")");
 			serverCommand(server, "fill " + box(4, 4) + " minecraft:air");
-			serverCommand(server, "weather clear");
-			Config.wind = true;
 		}));
+		whiteout();
+		run(mc -> Config.wind = true);
+	}
+
+	/**
+	 * Whiteout: still on the summit in the snowstorm, out from under the roof, the fog fades all the
+	 * way in; once the weather clears it fades all the way out. The fade only moves while the game
+	 * draws fog through the mixin, so this also proves the mixin is in place. The screenshots are for
+	 * judging the look.
+	 */
+	private static void whiteout() {
+		standInTheMiddle();
+		waitTicks(100);
+		ClientTest.screenshot();
+		run(mc -> check(Whiteout.amount() >= 0.99F, "Whiteout: the fog didn't close in on a summit in a snowstorm (faded in " + Whiteout.amount() + ")"));
+		run(mc -> onServer(mc, server -> serverCommand(server, "weather clear")));
+		waitTicks(200);
+		run(mc -> check(Whiteout.amount() <= 0.01F, "Whiteout: the fog didn't lift when the storm ended (faded in " + Whiteout.amount() + ")"));
 	}
 
 	private static void standInTheMiddle() {

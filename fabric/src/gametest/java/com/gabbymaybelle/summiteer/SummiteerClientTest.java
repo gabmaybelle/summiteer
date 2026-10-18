@@ -1,5 +1,6 @@
 package com.gabbymaybelle.summiteer;
 
+import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
@@ -143,7 +144,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	 */
 	private void wind(ClientGameTestContext ctx, TestSingleplayerContext world) {
 		buildSite(world);
-		ctx.waitTicks(400);
+		ctx.waitTicks(20);
+		ctx.takeScreenshot("summit-clear");
+		ctx.waitTicks(380);
 		double open = drift(world);
 		check(open > 0.4, "wind: gusts push you on an open summit (moved " + String.format("%.2f", open) + " blocks)");
 
@@ -177,8 +180,27 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		int sheltered = frozen(world);
 		check(sheltered == 0, "cold: under a roof the snowstorm doesn't freeze you (frozen " + sheltered + ")");
 		roof(world, false);
-		world.getServer().runOnServer(server -> command(server, "weather clear"));
+		whiteout(ctx, world);
 		Config.wind = true;
+	}
+
+	/**
+	 * Whiteout: still on the summit in the snowstorm, out from under the roof, the fog fades all the
+	 * way in; once the weather clears it fades all the way out. The fade only moves while the game
+	 * draws fog through the mixin, so this also proves the mixin is in place. The screenshots are for
+	 * judging the look.
+	 */
+	private void whiteout(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		standInTheMiddle(world);
+		ctx.waitTicks(100);
+		float in = ctx.computeOnClient(client -> Whiteout.amount());
+		ctx.takeScreenshot("summit-whiteout");
+		check(in >= 0.99F, "whiteout: the fog closes in on a summit in a snowstorm (faded in " + in + ")");
+
+		world.getServer().runOnServer(server -> command(server, "weather clear"));
+		ctx.waitTicks(200);
+		float out = ctx.computeOnClient(client -> Whiteout.amount());
+		check(out <= 0.01F, "whiteout: the fog lifts when the storm ends (faded in " + out + ")");
 	}
 
 	private static void command(net.minecraft.server.MinecraftServer server, String command) {

@@ -30,6 +30,11 @@ public final class Whiteout {
 	private Whiteout() {
 	}
 
+	/** How far the whiteout has faded in, 0 (clear) to 1 (full); it only moves while fog is drawn. */
+	public static float amount() {
+		return amount;
+	}
+
 	/** Whether a whiteout should be on where the camera is. */
 	public static boolean wanted(ClientLevel level, BlockPos camera) {
 		return Config.whiteouts
