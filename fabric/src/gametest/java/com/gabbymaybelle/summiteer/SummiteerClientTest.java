@@ -108,7 +108,8 @@ public class SummiteerClientTest implements FabricClientGameTest {
 
 	private void standInTheMiddle(TestSingleplayerContext world) {
 		world.getServer().runOnServer(server -> {
-			command(server, "tp @a " + site[0] + ".5 " + (site[1] + 1) + " " + site[2] + ".5");
+			// Block centres as numbers: "-6" + ".5" would be -6.5, a block off from -6 + 0.5.
+			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5));
 			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
 			player.setDeltaMovement(0, 0, 0);
 			player.setTicksFrozen(0);

@@ -133,7 +133,8 @@ final class SummiteerClientTest {
 
 	private static void standInTheMiddle() {
 		run(mc -> onServer(mc, server -> {
-			serverCommand(server, "tp @a " + SITE_AT[0] + ".5 " + (SITE_AT[1] + 1) + " " + SITE_AT[2] + ".5");
+			// Block centres as numbers: "-6" + ".5" would be -6.5, a block off from -6 + 0.5.
+			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5));
 			ServerPlayer player = player(server);
 			player.setDeltaMovement(0, 0, 0);
 			player.setTicksFrozen(0);
