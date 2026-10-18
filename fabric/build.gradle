@@ -25,6 +25,10 @@ dependencies {
 	// Tall-terrain runs: `./gradlew :fabric:runClientGameTest -PtestTectonic` (or -PtestTerralith)
 	// plays the in-game test with that mod installed, fetched from Modrinth's maven by version id.
 	// Nothing here is bundled or required.
+	// Both terrain mods need the Lithostitched worldgen library.
+	if (project.hasProperty("testTectonic") || project.hasProperty("testTerralith")) {
+		runtimeOnly "maven.modrinth:lithostitched:${project.lithostitched_fabric_version}"
+	}
 	if (project.hasProperty("testTectonic")) {
 		runtimeOnly "maven.modrinth:tectonic:${project.tectonic_fabric_version}"
 	}

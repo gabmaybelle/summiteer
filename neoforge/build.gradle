@@ -47,6 +47,10 @@ neoForge {
 
 dependencies {
 	// Tall-terrain runs: -PtestTectonic or -PtestTerralith, the same as the Fabric side.
+	// Both terrain mods need the Lithostitched worldgen library.
+	if (project.hasProperty("testTectonic") || project.hasProperty("testTerralith")) {
+		runtimeOnly "maven.modrinth:lithostitched:${project.lithostitched_neoforge_version}"
+	}
 	if (project.hasProperty("testTectonic")) {
 		runtimeOnly "maven.modrinth:tectonic:${project.tectonic_neoforge_version}"
 	}
