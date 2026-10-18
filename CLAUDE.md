@@ -19,10 +19,13 @@ first, and add this session's row before ending.
 - **Cold** (planned): vanilla's freezing ticks, held off by **warmth**: each piece of the mountain
   clothes (beanie, parka, snow pants, wool socks; dyeable wool armour, leather-level protection) and
   mittens add some; campfires and fire warm you back up.
-- **Gear that straps on** (planned): crampons onto any boots, goggles onto any helmet, gloves into
-  any chestplate (or a Curios / Trinkets Updated hands slot when one is installed; neither is
-  required or bundled), the gale cloak onto any chestplate. A marker on the item, not a new slot,
-  so modded armour works too.
+- **Accessory slots** (decided 2026-10-18): Summiteer **requires** a slot mod for the clothing
+  that isn't armour: Curios on NeoForge, Trinkets Updated on Fabric (neither is bundled). Mittens and
+  gloves go in its hands slot. If one falls behind on a version we need, we make an unofficial port
+  of it rather than drop the requirement. No Forge build (too few Forge downloads, and Curios has no
+  Forge build on 26.x).
+- **Gear that straps on** (planned): crampons onto any boots, goggles onto any helmet, the gale
+  cloak onto any chestplate. A marker on the item, not a new slot, so modded armour works too.
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
   structure type (it samples the ground, like Beyond the Dragon's End ruins); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third
@@ -147,7 +150,7 @@ or test names. Check the diff for these before every push.
 - Keep the credit line: "made by Gabby with help from Claude, an AI assistant".
 - Gabby publishes on Modrinth herself. Don't upload anything there.
 **Minecraft.** Fabric and NeoForge (Mojang names; Loom 1.18.4, ModDevGradle 2.0, Java 25).
-`main` is the newest Minecraft (26.3). Ports to 1.21.1 (Fabric + NeoForge) and 1.20.1 (Fabric +
-Forge) get a branch each once all three temples are out; behaviour changes land on `main` first.
+`main` is the newest Minecraft (26.3). Ports to 1.21.1 (Fabric + NeoForge) and 1.20.1 (Fabric
+only: no Forge build) get a branch each once all three temples are out; behaviour changes land on `main` first.
 Vanilla names changed a lot in 26.x: check the merged jar rather than older docs (for example
 `iron_chain`, `pink_petals[flower_amount=N]`, timelines instead of `time query daytime`).

@@ -28,8 +28,8 @@ mountaineer, then take on the temples at the top of the ranges.
 
 Vanilla blocks and vanilla-style mobs throughout. Nothing uses a fixed height: the weather and the
 temples follow the mountains, so tall-terrain mods like **Tectonic, Terralith and Amplified worlds**
-just work (the game test runs with Tectonic and with Terralith). Gloves go in a Curios or Trinkets
-slot when one of those is installed; neither is needed.
+just work (the game test runs with Tectonic and with Terralith). Mittens and gloves go in an accessory
+slot, so Summiteer needs **Curios** (NeoForge) or **Trinkets Updated** (Fabric) installed.
 
 ## Settings
 
