@@ -164,7 +164,7 @@ final class SummiteerClientTest {
 
 	/**
 	 * Warmth: back in the snowstorm on the summit, the player dresses one piece at a time (beanie,
-	 * parka, snow pants, wool socks, then mittens in Curios' hands slot) and freezes for 10 seconds
+	 * parka, snow pants, wool socks, then mittens in Curios' hands slot) and freezes for 15 seconds
 	 * in each: every piece freezes them slower, and the full set stops it. Then, in nothing but
 	 * leather boots (vanilla's freeze-proof leather), being fully frozen still hurts.
 	 */
@@ -173,18 +173,22 @@ final class SummiteerClientTest {
 			Config.wind = false;
 			serverCommand(server, "weather rain");
 		}));
+		// The rain takes a moment to start.
+		waitTicks(40);
 		for (int step = 0; step < DRESSED.length; step++) {
 			int pieces = step;
 			run(mc -> onServer(mc, server -> dress(player(server), pieces)));
+			// Warmth is looked at once a second: let the new clothes count before the clock starts.
+			waitTicks(30);
 			standInTheMiddle();
-			waitTicks(200);
+			waitTicks(300);
 			run(mc -> onServer(mc, server -> {
 				FROZEN[pieces] = player(server).getTicksFrozen();
-				Summiteer.LOGGER.info("[test] wearing {}: frozen {} after 10 s", DRESSED[pieces], FROZEN[pieces]);
+				Summiteer.LOGGER.info("[test] wearing {}: frozen {} after 15 s", DRESSED[pieces], FROZEN[pieces]);
 			}));
 		}
 		run(mc -> {
-			check(FROZEN[0] >= 30, "Warmth: with nothing on you didn't freeze (frozen " + FROZEN[0] + " after 10 s)");
+			check(FROZEN[0] >= 45, "Warmth: with nothing on you didn't freeze (frozen " + FROZEN[0] + " after 15 s)");
 			for (int step = 1; step < DRESSED.length - 1; step++) {
 				check(FROZEN[step] < FROZEN[step - 1], "Warmth: wearing " + DRESSED[step] + " didn't freeze you slower than " + DRESSED[step - 1]
 						+ " (frozen " + FROZEN[step] + " against " + FROZEN[step - 1] + ")");

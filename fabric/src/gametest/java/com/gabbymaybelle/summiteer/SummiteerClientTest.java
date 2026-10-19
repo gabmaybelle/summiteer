@@ -214,24 +214,28 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	/**
 	 * Warmth: back in the snowstorm on the summit, the player dresses one piece at a time (beanie,
 	 * parka, snow pants, wool socks, then mittens in Trinkets Updated's glove slot) and freezes for
-	 * 10 seconds in each: every piece freezes them slower, and the full set stops it. Then, in
+	 * 15 seconds in each: every piece freezes them slower, and the full set stops it. Then, in
 	 * nothing but leather boots (vanilla's freeze-proof leather), being fully frozen still hurts.
 	 */
 	private void warmth(ClientGameTestContext ctx, TestSingleplayerContext world) {
 		Config.wind = false;
 		world.getServer().runOnServer(server -> command(server, "weather rain"));
+		// The rain takes a moment to start.
+		ctx.waitTicks(40);
 		String[] dressed = { "nothing", "a beanie", "a beanie and parka", "a beanie, parka and snow pants",
 				"all four clothes", "all four clothes and mittens" };
 		int[] frozen = new int[dressed.length];
 		for (int step = 0; step < dressed.length; step++) {
 			int pieces = step;
 			world.getServer().runOnServer(server -> dress(server.getPlayerList().getPlayers().getFirst(), pieces));
+			// Warmth is looked at once a second: let the new clothes count before the clock starts.
+			ctx.waitTicks(30);
 			standInTheMiddle(world);
-			ctx.waitTicks(200);
+			ctx.waitTicks(300);
 			frozen[step] = frozen(world);
-			Summiteer.LOGGER.info("[test] wearing {}: frozen {} after 10 s", dressed[step], frozen[step]);
+			Summiteer.LOGGER.info("[test] wearing {}: frozen {} after 15 s", dressed[step], frozen[step]);
 		}
-		check(frozen[0] >= 30, "warmth: with nothing on you freeze (frozen " + frozen[0] + " after 10 s)");
+		check(frozen[0] >= 45, "warmth: with nothing on you freeze (frozen " + frozen[0] + " after 15 s)");
 		for (int step = 1; step < dressed.length - 1; step++) {
 			check(frozen[step] < frozen[step - 1], "warmth: wearing " + dressed[step] + " freezes you slower than " + dressed[step - 1]
 					+ " (frozen " + frozen[step] + " against " + frozen[step - 1] + ")");
