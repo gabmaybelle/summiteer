@@ -202,6 +202,9 @@ final class SummiteerClientTest {
 			dress(player(server), 0);
 			player(server).setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
 		}));
+		// Let the change of clothes count (warmth is looked at once a second), or the full set's
+		// warmth would let you thaw for a moment first.
+		waitTicks(30);
 		standInTheMiddle();
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
@@ -215,7 +218,8 @@ final class SummiteerClientTest {
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
 			float health = player.getHealth();
-			check(health < 20.0F, "Warmth: leather boots stopped the cold hurting up high (health " + health + " of 20 after 5 s fully frozen)");
+			check(health < 20.0F, "Warmth: leather boots stopped the cold hurting up high (health " + health
+					+ " of 20 after 5 s fully frozen; frozen " + player.getTicksFrozen() + " of 140 at the end)");
 			player.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
 			player.getFoodData().setFoodLevel(20);
 			serverCommand(server, "weather clear");

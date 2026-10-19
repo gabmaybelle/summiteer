@@ -249,6 +249,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			dress(player, 0);
 			player.setItemSlot(EquipmentSlot.FEET, new ItemStack(Items.LEATHER_BOOTS));
 		});
+		// Let the change of clothes count (warmth is looked at once a second), or the full set's
+		// warmth would let you thaw for a moment first.
+		ctx.waitTicks(30);
 		standInTheMiddle(world);
 		world.getServer().runOnServer(server -> {
 			ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
@@ -260,7 +263,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		});
 		ctx.waitTicks(100);
 		float health = world.getServer().computeOnServer(server -> server.getPlayerList().getPlayers().getFirst().getHealth());
-		check(health < 20.0F, "warmth: leather boots don't stop the cold hurting up high (health " + health + " of 20 after 5 s fully frozen)");
+		int stillFrozen = frozen(world);
+		check(health < 20.0F, "warmth: leather boots don't stop the cold hurting up high (health " + health
+				+ " of 20 after 5 s fully frozen; frozen " + stillFrozen + " of 140 at the end)");
 
 		world.getServer().runOnServer(server -> {
 			dress(server.getPlayerList().getPlayers().getFirst(), 0);
