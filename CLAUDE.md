@@ -158,7 +158,8 @@ or test names. Check the diff for these before every push.
 - Keep the credit line: "made by Gabby with help from Claude, an AI assistant".
 - Gabby publishes on Modrinth herself. Don't upload anything there.
 **Minecraft.** Fabric and NeoForge (Mojang names; Loom 1.18.4, ModDevGradle 2.0, Java 25).
-`main` is the newest Minecraft (26.3). Ports to 1.21.1 (Fabric + NeoForge) and 1.20.1 (Fabric
-only: no Forge build) get a branch each once all three temples are out; behaviour changes land on `main` first.
+`main` is the newest Minecraft (26.3), the only line until 0.1.0 is out and has been played. Then
+1.21.1 (Fabric + NeoForge) gets its own branch; 1.20.1 (Fabric only: no Forge build) only if
+players ask. Behaviour changes land on `main` first.
 Vanilla names changed a lot in 26.x: check the merged jar rather than older docs (for example
 `iron_chain`, `pink_petals[flower_amount=N]`, timelines instead of `time query daytime`).
