@@ -288,10 +288,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 
 	/** Trinkets Updated's glove slot on the main hand. */
 	private TrinketInventory gloveSlot(ServerPlayer player) {
-		for (TrinketInventory inventory : TrinketsApi.getAttachment(player).getInventories().values()) {
-			if (inventory.slotType().group().equals("hand") && inventory.slotType().getId().equals("glove")) {
-				return inventory;
-			}
+		TrinketInventory gloves = TrinketsApi.getAttachment(player).getInventories().get("hand/glove");
+		if (gloves != null) {
+			return gloves;
 		}
 		throw new AssertionError("Trinkets Updated gave the player no hand/glove slot: " + TrinketsApi.getAttachment(player).getInventories().keySet());
 	}
