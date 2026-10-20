@@ -1,7 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.1.0
 
+The first release: mountain weather, clothes to stay warm, and the gear to climb.
+
+- Weather up high. Above the treeline, gusts of wind push you around (a whoosh and a rush of snow
+  warn you two seconds ahead; crouch to brace, or get under a roof), and they push gliders even
+  harder. In a snowstorm up high, or on a summit at night, the cold starts to freeze you; a fire
+  or a lit campfire keeps it off. When it rains below, it snows on the summits, in a whiteout that
+  closes the fog in to a few blocks. Wind, cold and whiteouts can each be turned off in
+  `config/summiteer.properties`.
 - The mountains know how high you are: every mountain biome above the treeline counts as high
   ground, and summit height counts anywhere. Both heights are measured from sea level and can be
   changed in `config/summiteer.properties`, so tall-terrain mods work too.
@@ -13,8 +21,8 @@
 - Climbing gear. The **ice axe**: hold it in either hand and walk into a wall of snow or ice to
   climb it (or bare rock, once you're above the treeline), sneak to hang on, and if you fall past
   one you slide down it unhurt. Climbing doesn't wear it out; it mines like an iron pickaxe and
-  hits a little harder. **Climbing gloves** (leather,
-  wool and string) keep your hands warm and climb faster. **Crampons** go in the feet slot: no
+  hits a little harder. **Climbing gloves** (leather, wool and string) keep your hands warm and
+  climb faster. **Crampons** go in the feet slot: no
   slipping on ice, you walk on powder snow, and gusts push you half as hard. **Snow goggles** go
   in the head slot and let you see much further in a whiteout. Right-click the gloves, crampons or
   goggles to put them on, the way you put on armour, and they show on your character: goggles over

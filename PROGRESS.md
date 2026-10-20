@@ -2,16 +2,19 @@
 
 ## Where things stand
 
-- **Done:** the climbing gear: ice axe, climbing gloves, crampons and snow goggles, with in-game checks and proof runs on both loaders (session 3b); the mountain clothes and warmth (session 3a); wind, cold and whiteouts with their settings (session 2, unit tested); the skeleton (session 1): the Fabric and NeoForge jars from one codebase, the settings
-  file, and the height zones (`LOW`, `HIGH`, `SUMMIT`) every mountain feature will use. Unit tests for
-  the bands; an in-game zone check on both loaders; CI runs the build and both in-game tests on their
-  own, with Tectonic and with Terralith.
+- **What it does:** mountain weather above the treeline (wind gusts, cold in snowstorms and on
+  summits at night, whiteouts on summits), dyeable wool mountain clothes that keep the cold off, and
+  climbing gear: an ice axe that climbs snow, ice and (above the treeline) rock, climbing gloves,
+  crampons and snow goggles in Curios or Trinkets Updated slots, worn visibly and put on by
+  right-click. Fabric and NeoForge on 26.3; the in-game tests run on both, on their own and with
+  Tectonic and Terralith.
 - **Broken:** nothing known.
-- **Next:** the 0.1.0 release (3c): Gabby's art for the gear and clothes sprites (the icon is done),
-  then a short check of the release jar (window and textures), then LIFECYCLE step 4. **0.1.0 scope
-  is locked** (Gabby, 2026-10-19): the weather, the clothes and the climbing gear, nothing more.
-  Ropes, cairns and the tent are 0.2.0; the Stone shrine and the Cairn 0.3.0; avalanches and the
-  other two shrines later. New ideas go to a later version.
+- **Open question for Gabby:** the treeline sits 70 blocks above sea level. In one hand-play world
+  the nearest jagged peaks topped out 22 blocks below it, so that range had no mountain weather; in
+  others the peaks reached 30 blocks above it. Worth a look before the 1.21.1 port.
+- **Next:** list it on CurseForge (Gabby), then ropes, cairns and the tent, then the Stone shrine
+  and the Cairn; avalanches and the other two shrines later. 1.21.1 once it has been listed and
+  played; 1.20.1 only if players ask.
 
 ## Sessions
 
@@ -25,3 +28,4 @@
 | 2026-10-20 | Hand play, rock and right-click | A hand play of the jars from main on both loaders, in survival on real jagged and frozen peaks: climbing a packed-ice wall about 1 block a second, sneaking alone hangs (sneak with forward still climbs, as on a ladder), letting go slides 13 blocks unhurt, a 19-block drop against the wall costs nothing; crampons walk over powder snow and without them you sink 2 blocks (on NeoForge too, and taking them off lets you sink again); the whiteout and goggles work on a summit; a storm gust blew the player off a small platform, as designed. The window stayed responsive (NeoForge's loading screen pauses for a few seconds, as NeoForge's does), the game never took focus, and neither log has an error from Summiteer. Two findings: a scan of the real peaks found almost no face of snow or ice (jagged peaks: 768 faces 3+ blocks high, none all snow or ice; frozen peaks: 527, 3), because snow only settles on top of the rock; and right-click didn't put gear on. Gabby chose: the ice axe also climbs natural rock (`#minecraft:base_stone_overworld`, calcite, dripstone) above the treeline only, and right-click puts on the gloves, goggles and crampons (first empty slot, else a swap). 28 unit tests pass (3 more for the grip rule). Both jars build; NeoForge and Fabric dedicated servers load with 0 problem lines. In-game checks on both loaders, passing in CI on their own and with Tectonic and Terralith: a stone wall on a summit climbs 2.35 blocks in 3 s and the same wall below the treeline 0; right-click puts crampons on (hand left empty) and swaps a new pair of gloves for the worn pair. Proof runs (throwaway branches, deleted), each failing on exactly its check on every job and both loaders: rock switched off where the wall is checked (the summit rock climb: 0 blocks), right-click switched off (crampons not on, gloves not swapped). |
 | 2026-10-20 | Faster test rounds | The NeoForge in-game test now notes each failed check and carries on, failing at the end with the full list (as the Fabric one does), so one proof branch can switch off several features at once. CI stops a run when a newer push to the same branch replaces it, and skips pushes that only change notes, art sources or the licence. |
 | 2026-10-20 | Worn gear, sprites | Gabby chose: the goggles, crampons and gloves show on the player in 0.1.0, as small worn models (Trinkets' armour-style swap would have hidden helmets and boots); the item sprites redrawn in the icon's style (dyed items as a tinted base plus an untinted overlay for the outline and fixed parts, like leather); the recipes stay; climbing no longer wears the ice axe. Both game tests photograph the worn gear (front, back, over the beanie and wool socks); after three rounds (the first had the goggles backwards and the gloves inside the skin's sleeve layer on Fabric, the second the gloves upside-down on Fabric) Fabric and NeoForge look the same: goggles over the eyes with the strap round the back, gloves on the hands, crampons under the boots, all over the clothes. |
+| 2026-10-20 | Release prep | Hand play of the release jars on both loaders, in survival on real frozen peaks, wearing Gabby's skin: right-click puts on the goggles, crampons, gloves and clothes; the ice axe climbs a natural packed-ice cliff; crampons walk over powder snow; in a thunderstorm the full kit keeps the cold off (frozen 0 after 25 s) and without the gloves the cold creeps in (27 after 25 s); the new sprites show in the hotbar and in hand. The window stayed responsive on both, and neither log has an error from Summiteer. The release changelog gained the weather, which it had been missing, and the README now says what 0.1.0 has and what is still to come. |

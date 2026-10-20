@@ -2,27 +2,29 @@
 
 A Fabric and NeoForge mod for Minecraft 26.3. **Mountains worth climbing.**
 
-> **Work in progress.** Nothing is released yet. This page describes what Summiteer is being built
-> to do; the [changelog](CHANGELOG.md) says what's in so far.
-
 Minecraft's mountains are the biggest landscapes in the game, and they give you nothing to do.
 Summiteer changes that. Climb above the treeline and the weather fights back. Gear up like a real
 mountaineer, then take on the temples at the top of the ranges.
 
-## What's coming
+## What's in it
 
-- **Weather up high.** Wind that pushes you off ledges (and blows elytra and ender pearls off
-  course near the summits), freezing **blizzards** and whiteouts, and **avalanches** set off by a
-  goat horn or a blast.
+- **Weather up high.** Above the treeline, gusts of wind push you off ledges (crouch to brace, or
+  find a roof), snowstorms freeze you, and summits disappear into whiteouts.
 - **Mountain clothes.** A beanie, parka, snow pants and wool socks, dyeable like leather: warm, but
   only as tough as leather, so you choose between staying warm and staying armoured. Climbing
   gloves keep your hands warm too.
-- **Mountaineering gear.** An ice axe for climbing snow, ice and high rock and stopping a fall, crampons for
-  ice and powder snow, snow goggles for whiteouts, then ropes and anchors, trail cairns that show
-  through fog, and a base camp tent to respawn at.
-- **Three mountain temples, three bosses.** The Stone shrine on stony peaks, the Frost shrine on
-  frozen peaks, and the Summit shrine on the tallest peak of a range. Ring a shrine's bell to wake
-  its guardian; each one has a simple rule to learn and guards the key to the next.
+- **Climbing gear.** An ice axe for climbing snow, ice and high rock (and sliding down safely if you
+  fall), crampons for ice and powder snow, and snow goggles to see through a whiteout. Right-click
+  to wear them; they show on your character.
+
+See the [changelog](CHANGELOG.md) for the details.
+
+## What's coming
+
+Ropes and anchors, trail cairns that show through fog, and a base camp tent to respawn at. Then
+three mountain temples with a boss each: the Stone shrine on stony peaks, the Frost shrine on frozen
+peaks, and the Summit shrine on the tallest peak of a range. Ring a shrine's bell to wake its
+guardian; each one has a simple rule to learn and guards the key to the next. Avalanches later.
 
 ## Works with
 
@@ -34,7 +36,8 @@ in accessory slots, so Summiteer needs **Curios** (NeoForge) or **Trinkets Updat
 ## Settings
 
 In `config/summiteer.properties`: where the treeline and the summits start, in blocks above sea
-level. Raise them for packs with very tall terrain.
+level (raise them for packs with very tall terrain), and whether the wind, the cold and whiteouts
+are on.
 
 ---
 
