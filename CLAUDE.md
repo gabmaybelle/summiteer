@@ -35,7 +35,7 @@ first, and add this session's row before ending.
 - **Gear that straps on** (planned): crampons onto any boots, goggles onto any helmet, the gale
   cloak onto any chestplate. A marker on the item, not a new slot, so modded armour works too.
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
-  structure type (it samples the ground, like Beyond the Dragon's End ruins); each boss is woken by
+  structure type (it samples the ground under the shrine's footing); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third
   of its health. Stone shrine: the Cairn (stunned when it rolls into a wall). Frost shrine: the Old Ram
   (its ice breaks only to fire). Summit shrine: the Gale (can only be hit when it lands). Each drops the
@@ -43,7 +43,7 @@ first, and add this session's row before ending.
 
 ## Layout
 
-One codebase, two jars (the same layout as Beyond the Dragon):
+One codebase, two jars:
 
 - `common/`: everything that doesn't care which loader it runs on. `Summiteer.init()` is the one
   entrypoint; `Config` is the settings file (`config/summiteer.properties`); `platform/` is the tiny
@@ -99,8 +99,6 @@ One job per mod, decided 2026-10-15, so nothing is done twice and each repo tell
 - **Pocket List** (pocket-list): the gathering checklist.
 - **Not Now, Shield** (not-now-shield): the shield drawn lower in first person; on 26.x also
   tools that change blocks while a shield is in the off-hand.
-- **Beyond the Dragon** (beyond-the-dragon): the end-game after the Ender Dragon: ruins at the
-  edge of the End, a dragon that comes back harder, and the aphelite metal.
 - **Summiteer** (summiteer): mountains worth climbing: wind, cold, whiteouts and avalanches up
   high, mountaineering gear and clothes, and three mountain temples with a boss each.
 - **Espresso Flavoured** (espresso-flavoured-pack): the modpack that puts them together. Since
