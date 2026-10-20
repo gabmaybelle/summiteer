@@ -7,9 +7,11 @@
   the bands; an in-game zone check on both loaders; CI runs the build and both in-game tests on their
   own, with Tectonic and with Terralith.
 - **Broken:** nothing known.
-- **Next:** 3b, the climbing gear,
-  ropes, cairns and the tent (4), the Stone shrine (5), the Cairn and the 0.1.0 release (6). Gabby's
-  `icon.ase` replaces the draft icon before release.
+- **Next:** the climbing gear (3b: climbing gloves, crampons, goggles, the ice axe), then the 0.1.0
+  release. **0.1.0 scope is locked** (Gabby, 2026-10-19): the weather, the clothes and the climbing
+  gear, nothing more. Ropes, cairns and the tent are 0.2.0; the Stone shrine and the Cairn 0.3.0;
+  avalanches and the other two shrines later. New ideas go to a later version. Gabby's `icon.ase`
+  replaces the draft icon before release.
 
 ## Sessions
 
