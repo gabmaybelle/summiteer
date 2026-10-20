@@ -1,7 +1,9 @@
 package com.gabbymaybelle.summiteer;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import net.minecraft.client.Minecraft;
@@ -24,9 +26,10 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
  * framework like Fabric's. It only runs in the `clientTest` run (`./gradlew :neoforge:runClientTest`),
  * which sets the system property below; this source set is never in the jar players get.
  *
- * <p>Each step runs on the game's own thread, one or more ticks at a time. A failed check throws,
+ * <p>Each step runs on the game's own thread, one or more ticks at a time. A failed check is noted
+ * and the run carries on; at the end, if any failed, it throws with every failed check listed,
  * which crashes the game with a crash report and a non-zero exit code, so Gradle (and CI) fail.
- * When every step has passed, the game closes normally. A watchdog ends a run that hangs.
+ * When every check has passed, the game closes normally. A watchdog ends a run that hangs.
  */
 @EventBusSubscriber(modid = Summiteer.MOD_ID, value = Dist.CLIENT)
 final class ClientTest {
@@ -42,6 +45,8 @@ final class ClientTest {
 	private static final Deque<Step> STEPS = new ArrayDeque<>();
 	private static boolean started;
 	private static boolean finished;
+	/** Failed checks so far; checks run on both the game and the server thread. */
+	private static final List<String> FAILURES = new ArrayList<>();
 
 	private ClientTest() {
 	}
@@ -92,10 +97,18 @@ final class ClientTest {
 		waitTicks(2);
 	}
 
-	/** Fails the run with this message unless the condition holds. */
+	/**
+	 * Records a failed check and carries on, so one run reports every check that fails (the Fabric
+	 * game test does the same). The run fails at the end with the whole list. Setup problems (a
+	 * timeout, no server) still stop it at once: nothing after them could be trusted.
+	 */
 	static void check(boolean condition, String message) {
-		if (!condition) {
-			throw new AssertionError(message);
+		if (condition) {
+			return;
+		}
+		Summiteer.LOGGER.error("[test] FAILED: {}", message);
+		synchronized (FAILURES) {
+			FAILURES.add(message);
 		}
 	}
 
@@ -143,6 +156,11 @@ final class ClientTest {
 		Step step = STEPS.peek();
 		if (step == null) {
 			finished = true;
+			synchronized (FAILURES) {
+				if (!FAILURES.isEmpty()) {
+					throw new AssertionError(FAILURES.size() + " check(s) failed:\n - " + String.join("\n - ", FAILURES));
+				}
+			}
 			Summiteer.LOGGER.info("Summiteer: client test passed, every check");
 			mc.stop();
 			return;
