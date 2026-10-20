@@ -87,9 +87,10 @@ its `Platform` queues them and the result is a `Supplier`. The same goes for cre
 
 One job per mod, decided 2026-10-15, so nothing is done twice and each repo tells the same story:
 
-- **Cozy Core** (cozy-core): the builder rules, each an ordinary game rule: builds stay built (mob
-  explosions, endermen, fire), no phantoms, keep your hotbar on death, the Hearth Lantern, cheap
-  wood in the stonecutter, re-dyeing and builder trades. Fabric and NeoForge jars, plus a plain
+- **Cozy Core** (cozy-core): the Hearth Lantern, which makes the ground around it home: no
+  monsters or phantoms spawn there, and creeper and ghast blasts, fire and endermen leave its
+  blocks alone (each an ordinary game rule, with world-wide switches too); keep your hotbar on
+  death, cheap wood in the stonecutter, re-dyeing and builder trades. Fabric and NeoForge jars, plus a plain
   data pack of the recipes.
 - **Espresso Flavoured Core** (espresso-flavoured): the café: coffee you grow and brew, mugs,
   baristas, Bean Coins, the café charms, and Drowsy (coffee's reason to exist). Longer days stay a
@@ -101,11 +102,6 @@ One job per mod, decided 2026-10-15, so nothing is done twice and each repo tell
   tools that change blocks while a shield is in the off-hand.
 - **Summiteer** (summiteer): mountains worth climbing: wind, cold, whiteouts and avalanches up
   high, mountaineering gear and clothes, and three mountain temples with a boss each.
-- **Espresso Flavoured** (espresso-flavoured-pack): the modpack that puts them together. Since
-  pack 0.5.0 (2026-10-15) it carries all five: Cozy Core, Espresso Flavoured Core (back as the café
-  once it stopped doing Cozy Core's jobs), Spawn Gazebo, Nightfall Clock and Pocket List.
-- **Cozy Core Pack** (cozy-core-pack): the builder-friendly modpack around Cozy Core, with Spawn
-  Gazebo, Nightfall Clock, Pocket List and Not Now, Shield.
 
 A new feature goes in the mod whose job it is. If none fits, ask Gabby before adding it anywhere.
 
