@@ -26,14 +26,22 @@ first, and add this session's row before ending.
 - **Cold**: vanilla's freezing ticks (5 a second net, so about 28 s to fully frozen), held off by
   **warmth** (planned, `Cold.perSecond(warmth)`: one point takes one off): each piece of the mountain
   clothes (beanie, parka, snow pants, wool socks; dyeable wool armour, leather-level protection) and
-  mittens add some; campfires and fire warm you back up.
+  the climbing gloves add some; campfires and fire warm you back up.
 - **Accessory slots** (decided 2026-10-18): Summiteer **requires** a slot mod for the clothing
-  that isn't armour: Curios on NeoForge, Trinkets Updated on Fabric (neither is bundled). Mittens and
-  gloves go in its hands slot. If one falls behind on a version we need, we make an unofficial port
-  of it rather than drop the requirement. No Forge build (too few Forge downloads, and Curios has no
+  that isn't armour: Curios on NeoForge, Trinkets Updated on Fabric (neither is bundled). Climbing
+  gloves go in its hands slot, snow goggles in the head slot (Trinkets: `head/face`), crampons in the
+  feet slot (Trinkets: `feet/shoes`); Summiteer's slot data files turn those slots on for players.
+  If one falls behind on a version we need, we make an unofficial port of it rather than drop the
+  requirement. No Forge build (too few Forge downloads, and Curios has no
   Forge build on 26.x).
-- **Gear that straps on** (planned): crampons onto any boots, goggles onto any helmet, the gale
-  cloak onto any chestplate. A marker on the item, not a new slot, so modded armour works too.
+- **Climbing gear** (`gear/`, decided 2026-10-19): goggles and crampons are accessories, not
+  strapped onto armour, so they work with any armour and swap freely. The ice axe in either hand
+  makes a snow or ice wall (`summiteer:ice_axe_climbable`) a ladder: `mixin/LivingEntityMixin`
+  answers `onClimbable`, so vanilla's ladder rules give the slide, the sneak-to-hang and the fall
+  reset; only the climb speed is ours (`Climbing`, 1 block a second, 1.6 in climbing gloves). The
+  server resets fall distance and wears the axe once a second on a wall (`Gear.serverTick`).
+  Crampons cap block friction at 0.6 (ordinary ground) and walk on powder snow
+  (`mixin/PowderSnowBlockMixin`); gusts push half as hard. Goggles push the whiteout fog out to 48.
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
   structure type (it samples the ground under the shrine's footing); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third

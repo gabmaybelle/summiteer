@@ -17,7 +17,7 @@ public final class Cold {
 	 * is about half a minute.
 	 */
 	static final int BASE_PER_SECOND = 5;
-	/** Warmth that stops the cold altogether: the four clothes and the mittens. */
+	/** Warmth that stops the cold altogether: the four clothes and the climbing gloves. */
 	public static final int FULL_WARMTH = BASE_PER_SECOND;
 
 	private Cold() {
@@ -30,15 +30,15 @@ public final class Cold {
 
 	/**
 	 * Warmth from what someone is wearing: one point per warm piece of clothing (beanie, parka,
-	 * snow pants, wool socks) and one for mittens, never more than {@link #FULL_WARMTH}.
+	 * snow pants, wool socks) and one for climbing gloves, never more than {@link #FULL_WARMTH}.
 	 */
-	public static int warmth(int warmPieces, boolean mittens) {
-		return Math.min(FULL_WARMTH, Math.max(0, warmPieces) + (mittens ? 1 : 0));
+	public static int warmth(int warmPieces, boolean gloves) {
+		return Math.min(FULL_WARMTH, Math.max(0, warmPieces) + (gloves ? 1 : 0));
 	}
 
 	/**
 	 * Freezing per second. Each point of warmth takes one off, so the full set of clothes and
-	 * mittens stops it altogether.
+	 * gloves stops it altogether.
 	 */
 	public static int perSecond(int warmth) {
 		return Math.max(0, BASE_PER_SECOND - warmth);

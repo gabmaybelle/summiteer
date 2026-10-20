@@ -3,7 +3,7 @@
   "dye": "#minecraft:dyes",
   "group": "dyed_armor",
   "result": {
-    "id": "summiteer:mittens"
+    "id": "summiteer:climbing_gloves"
   },
-  "target": "summiteer:mittens"
+  "target": "summiteer:climbing_gloves"
 }

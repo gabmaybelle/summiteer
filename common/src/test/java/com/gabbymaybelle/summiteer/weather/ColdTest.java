@@ -44,7 +44,7 @@ class ColdTest {
 	}
 
 	@Test
-	void eachPieceOfClothingAndTheMittensAreAPointOfWarmthEach() {
+	void eachPieceOfClothingAndTheGlovesAreAPointOfWarmthEach() {
 		assertEquals(0, Cold.warmth(0, false));
 		assertEquals(1, Cold.warmth(1, false));
 		assertEquals(1, Cold.warmth(0, true));
@@ -53,7 +53,7 @@ class ColdTest {
 	}
 
 	@Test
-	void theFullSetWithMittensStopsTheCold() {
+	void theFullSetWithGlovesStopsTheCold() {
 		assertEquals(Cold.FULL_WARMTH, Cold.warmth(4, true));
 		assertEquals(0, Cold.perSecond(Cold.warmth(4, true)));
 		// One piece short still freezes, just slowly.
@@ -65,7 +65,7 @@ class ColdTest {
 	void everyPieceSlowsTheFreezing() {
 		for (int pieces = 0; pieces < 4; pieces++) {
 			assertTrue(Cold.perSecond(Cold.warmth(pieces + 1, false)) < Cold.perSecond(Cold.warmth(pieces, false)), pieces + " pieces");
-			assertTrue(Cold.perSecond(Cold.warmth(pieces, true)) < Cold.perSecond(Cold.warmth(pieces, false)), pieces + " pieces and mittens");
+			assertTrue(Cold.perSecond(Cold.warmth(pieces, true)) < Cold.perSecond(Cold.warmth(pieces, false)), pieces + " pieces and gloves");
 		}
 	}
 

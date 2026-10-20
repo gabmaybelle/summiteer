@@ -1,7 +1,7 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "summiteer:item/mittens",
+    "model": "summiteer:item/climbing_gloves",
     "tints": [
       {
         "type": "minecraft:dye",

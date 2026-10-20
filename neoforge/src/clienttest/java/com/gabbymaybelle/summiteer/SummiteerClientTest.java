@@ -7,6 +7,7 @@ import static com.gabbymaybelle.summiteer.ClientTest.waitTicks;
 
 import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
+import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
@@ -15,6 +16,7 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -77,6 +79,7 @@ final class SummiteerClientTest {
 		wind();
 		cold();
 		warmth();
+		gear();
 	}
 
 	/**
@@ -153,18 +156,30 @@ final class SummiteerClientTest {
 		waitTicks(100);
 		ClientTest.screenshot();
 		run(mc -> check(Whiteout.amount() >= 0.99F, "Whiteout: the fog didn't close in on a summit in a snowstorm (faded in " + Whiteout.amount() + ")"));
+		float[] ends = new float[2];
+		run(mc -> {
+			ends[0] = Whiteout.lastEnd();
+			onServer(mc, server -> equip(player(server), "head", new ItemStack(Gear.SNOW_GOGGLES.get())));
+		});
+		waitTicks(20);
+		ClientTest.screenshot();
+		run(mc -> {
+			ends[1] = Whiteout.lastEnd();
+			check(ends[0] <= 21 && ends[1] >= 40, "Whiteout: snow goggles didn't see further (fog ends at " + ends[0] + " blocks, " + ends[1] + " with goggles)");
+			onServer(mc, server -> equip(player(server), "head", ItemStack.EMPTY));
+		});
 		run(mc -> onServer(mc, server -> serverCommand(server, "weather clear")));
 		waitTicks(200);
 		run(mc -> check(Whiteout.amount() <= 0.01F, "Whiteout: the fog didn't lift when the storm ended (faded in " + Whiteout.amount() + ")"));
 	}
 
 	private static final String[] DRESSED = { "nothing", "a beanie", "a beanie and parka", "a beanie, parka and snow pants",
-			"all four clothes", "all four clothes and mittens" };
+			"all four clothes", "all four clothes and climbing gloves" };
 	private static final int[] FROZEN = new int[DRESSED.length];
 
 	/**
 	 * Warmth: back in the snowstorm on the summit, the player dresses one piece at a time (beanie,
-	 * parka, snow pants, wool socks, then mittens in Curios' hands slot) and freezes for 15 seconds
+	 * parka, snow pants, wool socks, then climbing gloves in Curios' hands slot) and freezes for 15 seconds
 	 * in each: every piece freezes them slower, and the full set stops it. Then, in nothing but
 	 * leather boots (vanilla's freeze-proof leather), being fully frozen still hurts.
 	 */
@@ -227,20 +242,171 @@ final class SummiteerClientTest {
 		}));
 	}
 
-	/** Dresses the player in the first {@code pieces} of: beanie, parka, snow pants, wool socks, mittens. */
+	/** Dresses the player in the first {@code pieces} of: beanie, parka, snow pants, wool socks, climbing gloves. */
 	private static void dress(ServerPlayer player, int pieces) {
 		EquipmentSlot[] slots = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
 		Item[] clothes = { Clothes.BEANIE.get(), Clothes.PARKA.get(), Clothes.SNOW_PANTS.get(), Clothes.WOOL_SOCKS.get() };
 		for (int i = 0; i < slots.length; i++) {
 			player.setItemSlot(slots[i], i < pieces ? new ItemStack(clothes[i]) : ItemStack.EMPTY);
 		}
-		ItemStack mittens = new ItemStack(Clothes.MITTENS.get());
-		if (pieces > 4) {
-			check(CuriosSlotTypes.getItemSlotTypes(mittens, player).containsKey("hands"), "Mittens: they don't fit Curios' hands slot");
+		equip(player, "hands", pieces > 4 ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
+	}
+
+	/** What each part of the gear check measured, for the checks at the end. */
+	private static final double[] CLIMB = new double[3];
+	private static final float[] LOST = new float[2];
+	private static final double[] SLID = new double[2];
+	private static final double[] SANK = new double[2];
+
+	/**
+	 * The climbing gear, on the summit site with the wind and cold off. An ice wall stands three
+	 * blocks east of the middle, 14 high. Walking into it for three seconds climbs it with the ice
+	 * axe, faster in climbing gloves, and not at all without the axe. Dropped from 18 blocks up
+	 * beside it, the axe slides you down unhurt; without it the fall hurts. On packed ice a shove
+	 * slides you less in crampons, and in crampons you stand on powder snow instead of sinking.
+	 */
+	private static void gear() {
+		run(mc -> onServer(mc, server -> {
+			Config.wind = false;
+			Config.cold = false;
+			serverCommand(server, "weather clear");
+			serverCommand(server, "fill " + (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] - 2) + " "
+					+ (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 14) + " " + (SITE_AT[2] + 2) + " minecraft:packed_ice");
+			// Hungry enough not to heal, so a hard landing shows.
+			player(server).getFoodData().setFoodLevel(10);
+		}));
+		climb(0, false, false);
+		climb(1, true, false);
+		climb(2, true, true);
+		run(mc -> {
+			check(CLIMB[0] < 0.6, "Ice axe: you climbed an ice wall without it (rose " + String.format("%.2f", CLIMB[0]) + " blocks in 3 s)");
+			check(CLIMB[1] > 1.5, "Ice axe: walking into an ice wall didn't climb it (rose " + String.format("%.2f", CLIMB[1]) + " blocks in 3 s)");
+			check(CLIMB[2] > CLIMB[1] + 0.5, "Ice axe: climbing gloves didn't climb faster (rose " + String.format("%.2f", CLIMB[2])
+					+ " blocks against " + String.format("%.2f", CLIMB[1]) + ")");
+		});
+
+		drop(0, false);
+		drop(1, true);
+		run(mc -> {
+			check(LOST[0] >= 4, "Ice axe: the fall didn't hurt without it (lost " + LOST[0] + " health)");
+			check(LOST[1] == 0, "Ice axe: sliding down the wall with it, the fall still hurt (lost " + LOST[1] + " health)");
+		});
+
+		slide(0, false);
+		slide(1, true);
+		run(mc -> check(SLID[1] < SLID[0] * 0.6, "Crampons: you still slip on ice (slid " + String.format("%.2f", SLID[1]) + " blocks in them, "
+				+ String.format("%.2f", SLID[0]) + " without)"));
+
+		powderSnow(0, false);
+		powderSnow(1, true);
+		run(mc -> check(SANK[0] > 0.4 && SANK[1] < 0.05, "Crampons: you didn't walk on powder snow (sank " + String.format("%.2f", SANK[1])
+				+ " blocks in them, " + String.format("%.2f", SANK[0]) + " without)"));
+
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			equip(player, "hands", ItemStack.EMPTY);
+			equip(player, "feet", ItemStack.EMPTY);
+			player.getFoodData().setFoodLevel(20);
+			Config.wind = true;
+			Config.cold = true;
+		}));
+	}
+
+	/** Walks east into the ice wall for three seconds; stores how many blocks the player rose. */
+	private static void climb(int index, boolean axe, boolean gloves) {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, axe ? new ItemStack(Gear.ICE_AXE.get()) : ItemStack.EMPTY);
+			equip(player, "hands", gloves ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
+			// Facing east (yaw -90), towards the wall.
+			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5) + " -90 0");
+			player.setDeltaMovement(0, 0, 0);
+		}));
+		waitTicks(10);
+		run(mc -> mc.options.keyUp.setDown(true));
+		waitTicks(60);
+		run(mc -> {
+			mc.options.keyUp.setDown(false);
+			onServer(mc, server -> {
+				CLIMB[index] = player(server).getY() - (SITE_AT[1] + 1);
+				Summiteer.LOGGER.info("[test] climb with axe {} and gloves {}: rose {}", axe, gloves, CLIMB[index]);
+			});
+		});
+		if (axe && gloves) {
+			ClientTest.screenshot();
 		}
+	}
+
+	/** Drops the player from 18 blocks up, against the ice wall; stores how much health the landing cost. */
+	private static void drop(int index, boolean axe) {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, axe ? new ItemStack(Gear.ICE_AXE.get()) : ItemStack.EMPTY);
+			player.setHealth(player.getMaxHealth());
+			// Just touching the wall: the player is 0.6 wide, so their east side is at x + 2.99.
+			serverCommand(server, "tp @a " + (SITE_AT[0] + 2.69) + " " + (SITE_AT[1] + 18) + " " + (SITE_AT[2] + 0.5) + " -90 0");
+			player.setDeltaMovement(0, 0, 0);
+		}));
+		waitTicks(120);
+		run(mc -> onServer(mc, server -> {
+			LOST[index] = player(server).getMaxHealth() - player(server).getHealth();
+			Summiteer.LOGGER.info("[test] drop with axe {}: lost {} health", axe, LOST[index]);
+		}));
+	}
+
+	/** Shoves the player west across packed ice; stores how far they slid. */
+	private static void slide(int index, boolean crampons) {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			equip(player, "feet", crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY);
+			serverCommand(server, "fill " + (SITE_AT[0] - 9) + " " + SITE_AT[1] + " " + (SITE_AT[2] - 1) + " "
+					+ (SITE_AT[0] - 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 1) + " minecraft:packed_ice");
+			serverCommand(server, "tp @a " + (SITE_AT[0] - 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5) + " 90 0");
+		}));
+		waitTicks(10);
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setDeltaMovement(-0.5, 0, 0);
+			// Players move themselves, so the client must be told about the shove.
+			player.syncVelocity = true;
+		}));
+		waitTicks(40);
+		run(mc -> onServer(mc, server -> {
+			SLID[index] = (SITE_AT[0] - 0.5) - player(server).getX();
+			Summiteer.LOGGER.info("[test] shoved on ice with crampons {}: slid {}", crampons, SLID[index]);
+		}));
+	}
+
+	/** Stands the player on a patch of powder snow for two seconds; stores how far they sank. */
+	private static void powderSnow(int index, boolean crampons) {
+		String patch = (SITE_AT[0] - 1) + " " + (SITE_AT[1] - 1) + " " + (SITE_AT[2] + 4) + " " + (SITE_AT[0] + 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 6);
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			equip(player, "feet", crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY);
+			serverCommand(server, "fill " + patch + " minecraft:powder_snow");
+			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 5.5));
+			player.setDeltaMovement(0, 0, 0);
+		}));
+		waitTicks(40);
+		run(mc -> onServer(mc, server -> {
+			SANK[index] = (SITE_AT[1] + 1) - player(server).getY();
+			Summiteer.LOGGER.info("[test] on powder snow with crampons {}: sank {}", crampons, SANK[index]);
+			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5));
+			serverCommand(server, "fill " + patch + " minecraft:stone");
+			player(server).setTicksFrozen(0);
+		}));
+	}
+
+	/** Puts something in the first of one of Curios' slots ("hands", "head", "feet"); it must fit. */
+	private static void equip(ServerPlayer player, String slot, ItemStack stack) {
 		var curios = CuriosApi.getCuriosInventory(player).orElseThrow(() -> new AssertionError("Curios gave the player no slots"));
-		check(curios.getStacksHandler("hands").isPresent(), "Mittens: Curios gave the player no hands slot (slots: " + curios.getCurios().keySet() + ")");
-		curios.setEquippedCurio("hands", 0, pieces > 4 ? mittens : ItemStack.EMPTY);
+		check(curios.getStacksHandler(slot).isPresent(), "Curios gave the player no " + slot + " slot (slots: " + curios.getCurios().keySet() + ")");
+		if (!stack.isEmpty()) {
+			check(CuriosSlotTypes.getItemSlotTypes(stack, player).containsKey(slot), stack.getHoverName().getString() + " doesn't fit Curios' " + slot + " slot");
+		}
+		curios.setEquippedCurio(slot, 0, stack);
 	}
 
 	private static void standInTheMiddle() {

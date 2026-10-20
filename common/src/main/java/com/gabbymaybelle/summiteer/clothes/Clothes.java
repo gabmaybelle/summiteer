@@ -1,10 +1,12 @@
 package com.gabbymaybelle.summiteer.clothes;
 
 import com.gabbymaybelle.summiteer.Summiteer;
+import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.platform.Services;
 import com.gabbymaybelle.summiteer.weather.Cold;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -22,8 +24,9 @@ import net.minecraft.world.item.equipment.EquipmentAssets;
 
 /**
  * The mountain clothes: a beanie, a parka, snow pants and wool socks (dyeable wool armour with
- * leather's protection), and mittens for the hands slot of Curios or Trinkets Updated. Each piece
- * worn is one point of warmth against the cold up high (see {@link Cold#warmth}).
+ * leather's protection), and climbing gloves for the hands slot of Curios or Trinkets Updated (they
+ * also climb faster with the ice axe, see {@code gear.Climbing}). Each piece worn is one point of
+ * warmth against the cold up high (see {@link Cold#warmth}).
  *
  * <p>What keeps you warm is the item tag {@code summiteer:keeps_warm}, so a data pack can add
  * other mods' clothes. Vanilla's leather doesn't count: up high only warmth keeps the cold off.
@@ -46,7 +49,7 @@ public final class Clothes {
 	public static final Supplier<Item> PARKA = armour("parka", ArmorType.CHESTPLATE);
 	public static final Supplier<Item> SNOW_PANTS = armour("snow_pants", ArmorType.LEGGINGS);
 	public static final Supplier<Item> WOOL_SOCKS = armour("wool_socks", ArmorType.BOOTS);
-	public static final Supplier<Item> MITTENS = item("mittens", () -> new Item.Properties().stacksTo(1));
+	public static final Supplier<Item> CLIMBING_GLOVES = item("climbing_gloves", () -> new Item.Properties().stacksTo(1), Gear.Described::new);
 
 	/** Vanilla's Combat tab, beside the leather armour (its key is private in CreativeModeTabs). */
 	private static final ResourceKey<CreativeModeTab> COMBAT_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("combat"));
@@ -58,12 +61,12 @@ public final class Clothes {
 
 	/** Loads this class, so the items above are registered; called once from {@link Summiteer#init}. */
 	public static void init() {
-		for (Supplier<Item> item : List.of(BEANIE, PARKA, SNOW_PANTS, WOOL_SOCKS, MITTENS)) {
+		for (Supplier<Item> item : List.of(BEANIE, PARKA, SNOW_PANTS, WOOL_SOCKS, CLIMBING_GLOVES)) {
 			Services.PLATFORM.addToCreativeTab(COMBAT_TAB, item);
 		}
 	}
 
-	/** The warmth someone is wearing: one per warm piece in an armour slot, one for warm mittens. */
+	/** The warmth someone is wearing: one per warm piece in an armour slot, one for warm gloves. */
 	public static int warmth(LivingEntity entity) {
 		int pieces = 0;
 		for (EquipmentSlot slot : ARMOUR_SLOTS) {
@@ -76,16 +79,16 @@ public final class Clothes {
 	}
 
 	private static Supplier<Item> armour(String name, ArmorType type) {
-		return item(name, () -> new Item.Properties().humanoidArmor(WOOL, type));
+		return item(name, () -> new Item.Properties().humanoidArmor(WOOL, type), Item::new);
 	}
 
 	/**
 	 * The properties are only built inside the registration: on NeoForge, building armour
 	 * properties any earlier (at class load) touches registries that are already frozen.
 	 */
-	private static Supplier<Item> item(String name, Supplier<Item.Properties> properties) {
+	private static Supplier<Item> item(String name, Supplier<Item.Properties> properties, Function<Item.Properties, Item> kind) {
 		Identifier id = Summiteer.id(name);
 		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-		return Services.PLATFORM.register(Registries.ITEM, id, () -> new Item(properties.get().setId(key)));
+		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.get().setId(key)));
 	}
 }

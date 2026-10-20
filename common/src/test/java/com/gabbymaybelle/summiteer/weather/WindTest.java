@@ -12,14 +12,14 @@ class WindTest {
 
 	@Test
 	void noWindBelowTheTreeline() {
-		assertEquals(0, Wind.strength(Zone.LOW, true, false, true), EPSILON);
+		assertEquals(0, Wind.strength(Zone.LOW, true, false, true, false), EPSILON);
 	}
 
 	@Test
 	void summitsBlowHarderThanHighGroundAndStormsHarderStill() {
-		double high = Wind.strength(Zone.HIGH, false, false, false);
-		double summit = Wind.strength(Zone.SUMMIT, false, false, false);
-		double summitStorm = Wind.strength(Zone.SUMMIT, true, false, false);
+		double high = Wind.strength(Zone.HIGH, false, false, false, false);
+		double summit = Wind.strength(Zone.SUMMIT, false, false, false, false);
+		double summitStorm = Wind.strength(Zone.SUMMIT, true, false, false, false);
 		assertTrue(high > 0);
 		assertTrue(summit > high);
 		assertTrue(summitStorm > summit);
@@ -27,15 +27,27 @@ class WindTest {
 
 	@Test
 	void crouchingBracesAgainstMostOfAGust() {
-		double standing = Wind.strength(Zone.SUMMIT, true, false, false);
-		double crouching = Wind.strength(Zone.SUMMIT, true, true, false);
+		double standing = Wind.strength(Zone.SUMMIT, true, false, false, false);
+		double crouching = Wind.strength(Zone.SUMMIT, true, true, false, false);
 		assertEquals(standing * Wind.BRACED, crouching, EPSILON);
 	}
 
 	@Test
 	void glidersCantBraceAndGetBlownFurther() {
-		double standing = Wind.strength(Zone.SUMMIT, false, false, false);
-		assertEquals(standing * Wind.GLIDING, Wind.strength(Zone.SUMMIT, false, true, true), EPSILON);
+		double standing = Wind.strength(Zone.SUMMIT, false, false, false, false);
+		assertEquals(standing * Wind.GLIDING, Wind.strength(Zone.SUMMIT, false, true, true, false), EPSILON);
+	}
+
+	@Test
+	void cramponsHalveAGustAndStackWithCrouching() {
+		double standing = Wind.strength(Zone.SUMMIT, true, false, false, false);
+		assertEquals(standing * Wind.CRAMPONS, Wind.strength(Zone.SUMMIT, true, false, false, true), EPSILON);
+		assertEquals(standing * Wind.BRACED * Wind.CRAMPONS, Wind.strength(Zone.SUMMIT, true, true, false, true), EPSILON);
+	}
+
+	@Test
+	void cramponsDontHelpInTheAir() {
+		assertEquals(Wind.strength(Zone.SUMMIT, false, false, true, false), Wind.strength(Zone.SUMMIT, false, false, true, true), EPSILON);
 	}
 
 	@Test

@@ -15,11 +15,11 @@ mountaineer, then take on the temples at the top of the ranges.
   course near the summits), freezing **blizzards** and whiteouts, and **avalanches** set off by a
   goat horn or a blast.
 - **Mountain clothes.** A beanie, parka, snow pants and wool socks, dyeable like leather: warm, but
-  only as tough as leather, so you choose between staying warm and staying armoured. Mittens and
-  climbing gloves too.
-- **Mountaineering gear.** Crampons that strap onto any boots, an ice axe for climbing snow and ice
-  and stopping a fall, ropes and anchors, snow goggles, trail cairns that show through fog, and a
-  base camp tent to respawn at.
+  only as tough as leather, so you choose between staying warm and staying armoured. Climbing
+  gloves keep your hands warm too.
+- **Mountaineering gear.** An ice axe for climbing snow and ice and stopping a fall, crampons for
+  ice and powder snow, snow goggles for whiteouts, then ropes and anchors, trail cairns that show
+  through fog, and a base camp tent to respawn at.
 - **Three mountain temples, three bosses.** The Stone shrine on stony peaks, the Frost shrine on
   frozen peaks, and the Summit shrine on the tallest peak of a range. Ring a shrine's bell to wake
   its guardian; each one has a simple rule to learn and guards the key to the next.
@@ -28,8 +28,8 @@ mountaineer, then take on the temples at the top of the ranges.
 
 Vanilla blocks and vanilla-style mobs throughout. Nothing uses a fixed height: the weather and the
 temples follow the mountains, so tall-terrain mods like **Tectonic, Terralith and Amplified worlds**
-just work (the game test runs with Tectonic and with Terralith). Mittens and gloves go in an accessory
-slot, so Summiteer needs **Curios** (NeoForge) or **Trinkets Updated** (Fabric) installed.
+just work (the game test runs with Tectonic and with Terralith). Gloves, crampons and goggles go
+in accessory slots, so Summiteer needs **Curios** (NeoForge) or **Trinkets Updated** (Fabric) installed.
 
 ## Settings
 

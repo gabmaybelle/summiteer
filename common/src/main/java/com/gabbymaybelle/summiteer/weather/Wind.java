@@ -8,7 +8,7 @@ import com.gabbymaybelle.summiteer.zones.Zone;
  *
  * <p>A gust is fair: it is announced {@link #WARNING_TICKS} ahead (a rush of snow and a whoosh from
  * the side it will come from), crouching braces you against most of it, and under a roof there is
- * none. The wind comes from one direction for everyone in the world and turns slowly, a full circle
+ * none. Crampons dig in and halve what is left (not in the air). The wind comes from one direction for everyone in the world and turns slowly, a full circle
  * every four days, so a ridge you know stays windy from the same side for a while.
  */
 public final class Wind {
@@ -21,6 +21,7 @@ public final class Wind {
 	static final double STORM = 1.5;
 	static final double BRACED = 0.25;
 	static final double GLIDING = 1.5;
+	static final double CRAMPONS = 0.5;
 
 	/** One full turn of the wind every four in-game days. */
 	static final long TURN_TICKS = 4 * 24000L;
@@ -29,7 +30,7 @@ public final class Wind {
 	}
 
 	/** How hard a gust pushes, in blocks per tick; 0 means no gust here. */
-	public static double strength(Zone zone, boolean storm, boolean crouching, boolean gliding) {
+	public static double strength(Zone zone, boolean storm, boolean crouching, boolean gliding, boolean crampons) {
 		double push = switch (zone) {
 			case LOW -> 0;
 			case HIGH -> HIGH_PUSH;
@@ -41,8 +42,13 @@ public final class Wind {
 		if (gliding) {
 			// Nothing to brace against in the air.
 			push *= GLIDING;
-		} else if (crouching) {
-			push *= BRACED;
+		} else {
+			if (crouching) {
+				push *= BRACED;
+			}
+			if (crampons) {
+				push *= CRAMPONS;
+			}
 		}
 		return push;
 	}

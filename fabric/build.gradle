@@ -21,7 +21,7 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	// Required: the mittens go in Trinkets Updated's hand slot. Players install it themselves.
+	// Required: the climbing gloves, goggles and crampons go in Trinkets Updated's slots. Players install it themselves.
 	implementation "maven.modrinth:trinkets-updated:${project.trinkets_updated_version}"
 
 	// Tall-terrain runs: `./gradlew :fabric:runClientGameTest -PtestTectonic` (or -PtestTerralith)

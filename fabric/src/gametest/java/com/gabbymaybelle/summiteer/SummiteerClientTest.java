@@ -2,6 +2,7 @@ package com.gabbymaybelle.summiteer;
 
 import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
+import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import eu.pb4.trinkets.api.TrinketInventory;
@@ -17,6 +18,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -42,6 +44,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			wind(ctx, world);
 			cold(ctx, world);
 			warmth(ctx, world);
+			gear(ctx, world);
 		}
 		if (!failures.isEmpty()) {
 			throw new AssertionError(failures.size() + " check(s) failed:\n - " + String.join("\n - ", failures));
@@ -204,6 +207,13 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		float in = ctx.computeOnClient(client -> Whiteout.amount());
 		ctx.takeScreenshot("summit-whiteout");
 		check(in >= 0.99F, "whiteout: the fog closes in on a summit in a snowstorm (faded in " + in + ")");
+		float bare = ctx.computeOnClient(client -> Whiteout.lastEnd());
+		world.getServer().runOnServer(server -> slot(player(server), "head/face").setItem(0, new ItemStack(Gear.SNOW_GOGGLES.get())));
+		ctx.waitTicks(20);
+		float goggles = ctx.computeOnClient(client -> Whiteout.lastEnd());
+		ctx.takeScreenshot("summit-whiteout-goggles");
+		check(bare <= 21 && goggles >= 40, "whiteout: snow goggles see further (fog ends at " + bare + " blocks, " + goggles + " with goggles)");
+		world.getServer().runOnServer(server -> slot(player(server), "head/face").setItem(0, ItemStack.EMPTY));
 
 		world.getServer().runOnServer(server -> command(server, "weather clear"));
 		ctx.waitTicks(200);
@@ -213,7 +223,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 
 	/**
 	 * Warmth: back in the snowstorm on the summit, the player dresses one piece at a time (beanie,
-	 * parka, snow pants, wool socks, then mittens in Trinkets Updated's glove slot) and freezes for
+	 * parka, snow pants, wool socks, then climbing gloves in Trinkets Updated's glove slot) and freezes for
 	 * 15 seconds in each: every piece freezes them slower, and the full set stops it. Then, in
 	 * nothing but leather boots (vanilla's freeze-proof leather), being fully frozen still hurts.
 	 */
@@ -223,7 +233,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		// The rain takes a moment to start.
 		ctx.waitTicks(40);
 		String[] dressed = { "nothing", "a beanie", "a beanie and parka", "a beanie, parka and snow pants",
-				"all four clothes", "all four clothes and mittens" };
+				"all four clothes", "all four clothes and climbing gloves" };
 		int[] frozen = new int[dressed.length];
 		for (int step = 0; step < dressed.length; step++) {
 			int pieces = step;
@@ -276,28 +286,159 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		Config.wind = true;
 	}
 
-	/** Dresses the player in the first {@code pieces} of: beanie, parka, snow pants, wool socks, mittens. */
+	/** Dresses the player in the first {@code pieces} of: beanie, parka, snow pants, wool socks, climbing gloves. */
 	private void dress(ServerPlayer player, int pieces) {
 		EquipmentSlot[] slots = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
 		Item[] clothes = { Clothes.BEANIE.get(), Clothes.PARKA.get(), Clothes.SNOW_PANTS.get(), Clothes.WOOL_SOCKS.get() };
 		for (int i = 0; i < slots.length; i++) {
 			player.setItemSlot(slots[i], i < pieces ? new ItemStack(clothes[i]) : ItemStack.EMPTY);
 		}
-		TrinketInventory gloves = gloveSlot(player);
-		ItemStack mittens = new ItemStack(Clothes.MITTENS.get());
+		TrinketInventory gloves = slot(player, "hand/glove");
+		ItemStack gloves0 = new ItemStack(Clothes.CLIMBING_GLOVES.get());
 		if (pieces > 4) {
-			check(gloves.slotType().validatorCheck(mittens, gloves.getOrCreateSlotAccess(0), player), "mittens: they fit Trinkets Updated's glove slot");
+			check(gloves.slotType().validatorCheck(gloves0, gloves.getOrCreateSlotAccess(0), player), "climbing gloves: they fit Trinkets Updated's glove slot");
 		}
-		gloves.setItem(0, pieces > 4 ? mittens : ItemStack.EMPTY);
+		gloves.setItem(0, pieces > 4 ? gloves0 : ItemStack.EMPTY);
 	}
 
-	/** Trinkets Updated's glove slot on the main hand. */
-	private TrinketInventory gloveSlot(ServerPlayer player) {
-		TrinketInventory gloves = TrinketsApi.getAttachment(player).getInventories().get("hand/glove");
-		if (gloves != null) {
-			return gloves;
+	/** One of Trinkets Updated's slots on the player, by its group and name ("hand/glove"). */
+	private TrinketInventory slot(ServerPlayer player, String name) {
+		TrinketInventory slot = TrinketsApi.getAttachment(player).getInventories().get(name);
+		if (slot != null) {
+			return slot;
 		}
-		throw new AssertionError("Trinkets Updated gave the player no hand/glove slot: " + TrinketsApi.getAttachment(player).getInventories().keySet());
+		throw new AssertionError("Trinkets Updated gave the player no " + name + " slot: " + TrinketsApi.getAttachment(player).getInventories().keySet());
+	}
+
+	/**
+	 * The climbing gear, on the summit site with the wind and cold off. An ice wall stands three
+	 * blocks east of the middle, 14 high. Walking into it for three seconds climbs it with the ice
+	 * axe, faster in climbing gloves, and not at all without the axe. Dropped from 18 blocks up
+	 * beside it, the axe slides you down unhurt; without it the fall hurts. On packed ice a shove
+	 * slides you less in crampons, and in crampons you stand on powder snow instead of sinking.
+	 */
+	private void gear(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		Config.wind = false;
+		Config.cold = false;
+		world.getServer().runOnServer(server -> {
+			command(server, "weather clear");
+			command(server, "fill " + (site[0] + 3) + " " + (site[1] + 1) + " " + (site[2] - 2) + " "
+					+ (site[0] + 3) + " " + (site[1] + 14) + " " + (site[2] + 2) + " minecraft:packed_ice");
+			// Hungry enough not to heal, so a hard landing shows.
+			player(server).getFoodData().setFoodLevel(10);
+		});
+		double none = climb(ctx, world, false, false);
+		double bare = climb(ctx, world, true, false);
+		double gloves = climb(ctx, world, true, true);
+		check(none < 0.6, "ice axe: without it you can't climb an ice wall (rose " + String.format("%.2f", none) + " blocks in 3 s)");
+		check(bare > 1.5, "ice axe: walking into an ice wall climbs it (rose " + String.format("%.2f", bare) + " blocks in 3 s)");
+		check(gloves > bare + 0.5, "ice axe: climbing gloves climb faster (rose " + String.format("%.2f", gloves) + " blocks against " + String.format("%.2f", bare) + ")");
+
+		float hurtWithout = drop(ctx, world, false);
+		float hurtWith = drop(ctx, world, true);
+		check(hurtWithout >= 4, "ice axe: the fall hurts without it (lost " + hurtWithout + " health)");
+		check(hurtWith == 0, "ice axe: sliding down the wall with it, the fall doesn't hurt (lost " + hurtWith + " health)");
+
+		double slide = slide(ctx, world, false);
+		double grip = slide(ctx, world, true);
+		check(grip < slide * 0.6, "crampons: no slipping on ice (slid " + String.format("%.2f", grip) + " blocks in them, " + String.format("%.2f", slide) + " without)");
+
+		double sank = powderSnow(ctx, world, false);
+		double stood = powderSnow(ctx, world, true);
+		check(sank > 0.4 && stood < 0.05, "crampons: you walk on powder snow (sank " + String.format("%.2f", stood) + " blocks in them, "
+				+ String.format("%.2f", sank) + " without)");
+
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			slot(player, "hand/glove").setItem(0, ItemStack.EMPTY);
+			slot(player, "feet/shoes").setItem(0, ItemStack.EMPTY);
+			player.getFoodData().setFoodLevel(20);
+		});
+		Config.wind = true;
+		Config.cold = true;
+	}
+
+	/** Walks east into the ice wall for three seconds; how many blocks the player rose. */
+	private double climb(ClientGameTestContext ctx, TestSingleplayerContext world, boolean axe, boolean gloves) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, axe ? new ItemStack(Gear.ICE_AXE.get()) : ItemStack.EMPTY);
+			slot(player, "hand/glove").setItem(0, gloves ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
+			// Facing east (yaw -90), towards the wall.
+			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5) + " -90 0");
+			player.setDeltaMovement(0, 0, 0);
+		});
+		ctx.waitTicks(10);
+		ctx.getInput().holdKeyFor(options -> options.keyUp, 60);
+		double rose = world.getServer().computeOnServer(server -> player(server).getY() - (site[1] + 1));
+		if (axe && gloves) {
+			ctx.takeScreenshot("ice-axe-climb");
+		}
+		Summiteer.LOGGER.info("[test] climb with axe {} and gloves {}: rose {}", axe, gloves, rose);
+		return rose;
+	}
+
+	/** Drops the player from 18 blocks up, against the ice wall; how much health the landing cost. */
+	private float drop(ClientGameTestContext ctx, TestSingleplayerContext world, boolean axe) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, axe ? new ItemStack(Gear.ICE_AXE.get()) : ItemStack.EMPTY);
+			player.setHealth(player.getMaxHealth());
+			// Just touching the wall: the player is 0.6 wide, so their east side is at x + 2.99.
+			command(server, "tp @a " + (site[0] + 2.69) + " " + (site[1] + 18) + " " + (site[2] + 0.5) + " -90 0");
+			player.setDeltaMovement(0, 0, 0);
+		});
+		ctx.waitTicks(120);
+		float lost = world.getServer().computeOnServer(server -> player(server).getMaxHealth() - player(server).getHealth());
+		Summiteer.LOGGER.info("[test] drop with axe {}: lost {} health", axe, lost);
+		return lost;
+	}
+
+	/** Shoves the player west across packed ice; how far they slid. */
+	private double slide(ClientGameTestContext ctx, TestSingleplayerContext world, boolean crampons) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			slot(player, "feet/shoes").setItem(0, crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY);
+			command(server, "fill " + (site[0] - 9) + " " + site[1] + " " + (site[2] - 1) + " " + (site[0] - 1) + " " + site[1] + " " + (site[2] + 1) + " minecraft:packed_ice");
+			command(server, "tp @a " + (site[0] - 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5) + " 90 0");
+		});
+		ctx.waitTicks(10);
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setDeltaMovement(-0.5, 0, 0);
+			// Players move themselves, so the client must be told about the shove.
+			player.syncVelocity = true;
+		});
+		ctx.waitTicks(40);
+		double slid = world.getServer().computeOnServer(server -> (site[0] - 0.5) - player(server).getX());
+		Summiteer.LOGGER.info("[test] shoved on ice with crampons {}: slid {}", crampons, slid);
+		return slid;
+	}
+
+	/** Stands the player on a patch of powder snow for two seconds; how far they sank. */
+	private double powderSnow(ClientGameTestContext ctx, TestSingleplayerContext world, boolean crampons) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			slot(player, "feet/shoes").setItem(0, crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY);
+			command(server, "fill " + (site[0] - 1) + " " + (site[1] - 1) + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:powder_snow");
+			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 5.5));
+			player.setDeltaMovement(0, 0, 0);
+		});
+		ctx.waitTicks(40);
+		double sank = world.getServer().computeOnServer(server -> (site[1] + 1) - player(server).getY());
+		world.getServer().runOnServer(server -> {
+			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5));
+			command(server, "fill " + (site[0] - 1) + " " + (site[1] - 1) + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:stone");
+			player(server).setTicksFrozen(0);
+		});
+		Summiteer.LOGGER.info("[test] on powder snow with crampons {}: sank {}", crampons, sank);
+		return sank;
+	}
+
+	private static ServerPlayer player(net.minecraft.server.MinecraftServer server) {
+		return server.getPlayerList().getPlayers().getFirst();
 	}
 
 	private static void command(net.minecraft.server.MinecraftServer server, String command) {

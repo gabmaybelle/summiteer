@@ -2,6 +2,7 @@ package com.gabbymaybelle.summiteer.weather;
 
 import com.gabbymaybelle.summiteer.Config;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
+import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.util.HashMap;
@@ -113,7 +114,8 @@ public final class Weather {
 			return;
 		}
 		Zone zone = Zones.at(level, player.blockPosition());
-		double push = Wind.strength(zone, isSnowingAt(level, player.blockPosition()), player.isShiftKeyDown(), player.isFallFlying());
+		double push = Wind.strength(zone, isSnowingAt(level, player.blockPosition()), player.isShiftKeyDown(), player.isFallFlying(),
+				Gear.wearsCrampons(player));
 		if (push > 0) {
 			player.push(dx * push, 0.05, dz * push);
 			// Players move themselves, so the client must be told about the push.

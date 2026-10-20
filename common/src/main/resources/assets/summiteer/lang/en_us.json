@@ -3,5 +3,12 @@
   "item.summiteer.parka": "Parka",
   "item.summiteer.snow_pants": "Snow Pants",
   "item.summiteer.wool_socks": "Wool Socks",
-  "item.summiteer.mittens": "Mittens"
+  "item.summiteer.climbing_gloves": "Climbing Gloves",
+  "item.summiteer.climbing_gloves.desc": "Warm hands, and a faster climb with the ice axe",
+  "item.summiteer.snow_goggles": "Snow Goggles",
+  "item.summiteer.snow_goggles.desc": "See further in a whiteout",
+  "item.summiteer.crampons": "Crampons",
+  "item.summiteer.crampons.desc": "No slipping on ice, walk on powder snow, steadier in the wind",
+  "item.summiteer.ice_axe": "Ice Axe",
+  "item.summiteer.ice_axe.desc": "Walk into snow or ice to climb; sneak to hang on"
 }

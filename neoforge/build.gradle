@@ -46,7 +46,7 @@ neoForge {
 }
 
 dependencies {
-	// Required: the mittens go in Curios' hands slot. Players install it themselves.
+	// Required: the climbing gloves, goggles and crampons go in Curios' slots. Players install it themselves.
 	implementation "maven.modrinth:curios:${project.curios_version}"
 	clienttestImplementation "maven.modrinth:curios:${project.curios_version}"
 	// Tall-terrain runs: -PtestTectonic or -PtestTerralith, the same as the Fabric side.

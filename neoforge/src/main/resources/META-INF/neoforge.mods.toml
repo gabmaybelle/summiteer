@@ -27,7 +27,7 @@ versionRange = "[26.3,26.4)"
 ordering = "NONE"
 side = "BOTH"
 
-# The mittens go in Curios' hands slot.
+# The climbing gloves, goggles and crampons go in Curios' slots.
 [[dependencies.summiteer]]
 modId = "curios"
 type = "required"

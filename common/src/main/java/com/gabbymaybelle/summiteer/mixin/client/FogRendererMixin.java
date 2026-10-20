@@ -1,8 +1,10 @@
 package com.gabbymaybelle.summiteer.mixin.client;
 
 import com.gabbymaybelle.summiteer.client.Whiteout;
+import com.gabbymaybelle.summiteer.gear.Gear;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.fog.FogRenderer;
@@ -19,6 +21,7 @@ public abstract class FogRendererMixin {
 	private void summiteer$whiteout(Camera camera, int renderDistanceInChunks, DeltaTracker deltaTracker, float darkenWorldAmount,
 			ClientLevel level, CallbackInfoReturnable<FogData> cir) {
 		boolean wanted = camera.getFluidInCamera() == FogType.NONE && Whiteout.wanted(level, camera.blockPosition());
-		Whiteout.apply(cir.getReturnValue(), wanted, deltaTracker.getRealtimeDeltaTicks());
+		boolean goggles = Minecraft.getInstance().player != null && Gear.wearsGoggles(Minecraft.getInstance().player);
+		Whiteout.apply(cir.getReturnValue(), wanted, goggles, deltaTracker.getRealtimeDeltaTicks());
 	}
 }

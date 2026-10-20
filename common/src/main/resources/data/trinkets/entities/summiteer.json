@@ -3,6 +3,8 @@
     "minecraft:player"
   ],
   "slots": [
-    "hand/glove"
+    "hand/glove",
+    "head/face",
+    "feet/shoes"
   ]
 }

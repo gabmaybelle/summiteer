@@ -2,14 +2,13 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "key": {
-    "S": "minecraft:string",
-    "X": "#minecraft:wool"
+    "G": "minecraft:glass_pane",
+    "L": "minecraft:leather"
   },
   "pattern": [
-    "S S",
-    "X X"
+    "GLG"
   ],
   "result": {
-    "id": "summiteer:mittens"
+    "id": "summiteer:snow_goggles"
   }
 }

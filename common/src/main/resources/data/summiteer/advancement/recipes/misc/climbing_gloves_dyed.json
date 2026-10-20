@@ -1,11 +1,11 @@
 {
   "parent": "minecraft:recipes/root",
   "criteria": {
-    "has_wool": {
+    "has_gloves": {
       "conditions": {
         "items": [
           {
-            "items": "#minecraft:wool"
+            "items": "summiteer:climbing_gloves"
           }
         ]
       },
@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:mittens"
+        "recipes": "summiteer:climbing_gloves_dyed"
       },
       "trigger": "minecraft:recipe_unlocked"
     }
@@ -21,12 +21,12 @@
   "requirements": [
     [
       "has_the_recipe",
-      "has_wool"
+      "has_gloves"
     ]
   ],
   "rewards": {
     "recipes": [
-      "summiteer:mittens"
+      "summiteer:climbing_gloves_dyed"
     ]
   }
 }
