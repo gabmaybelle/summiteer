@@ -39,6 +39,10 @@ public class SummiteerClientTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
+		// A filming run (-PvideoTour) films only; the regular checks run in every other game test.
+		if (Film.on("summiteer")) {
+			return;
+		}
 		settingsFile();
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();

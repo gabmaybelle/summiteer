@@ -301,11 +301,45 @@ public class VideoTour implements FabricClientGameTest {
 		film.server.runCommand("weather rain");
 		film.until0(mc -> mc.level.getRainLevel(1) > 0.99f);
 		film.window(1080, 1920, 3);
+		if (film.scouting()) {
+			// The set first, before any action: the stage chose these spots itself, so Gabby sees them.
+			film.scene("x_set_cliff", this::previewCliff);
+			film.scene("x_set_wind", this::previewWind);
+			film.scene("x_set_peak", this::previewPeak);
+		}
 		film.scene("s_climb", () -> climb(5, 70));
 		film.scene("s_wind", this::wind);
 		film.scene("s_fall", this::fall);
 		film.scene("s_summit", this::summit);
 		film.scene("s_loop", () -> climb(0, 60));
+	}
+
+	/**
+	 * Scout only: stills of the spots the stage found, from a spectator camera: the cliff face from
+	 * twenty blocks out, the wind spot, and the peak with the range behind it. A scout keeps each
+	 * scene's first and last frames, so each spot is its own scene.
+	 */
+	private void previewCliff() {
+		Vec3 face = wallPoint(wallHeight / 2.0);
+		preview(face.add(-wallDx * 20, wallHeight / 2.0 + 4, -wallDz * 20), face);
+	}
+
+	private void previewWind() {
+		Vec3 spot = Vec3.atBottomCenterOf(windSpot);
+		preview(spot.add(10, 6, 10), spot);
+	}
+
+	private void previewPeak() {
+		Vec3 top = Vec3.atBottomCenterOf(peak);
+		Vec3 from = Vec3.atBottomCenterOf(approach);
+		preview(from.add(from.subtract(top).normalize().scale(12)).add(0, 6, 0), top);
+	}
+
+	private void preview(Vec3 eye, Vec3 look) {
+		film.hud(false);
+		film.spectator();
+		film.camera(eye, look);
+		film.record(2);
 	}
 
 	/**
