@@ -7,12 +7,9 @@
   the bands; an in-game zone check on both loaders; CI runs the build and both in-game tests on their
   own, with Tectonic and with Terralith.
 - **Broken:** nothing known.
-- **Next:** 3b, the climbing gear (climbing gloves, crampons, goggles, the ice axe), then the 0.1.0
-  release: the weather, the clothes and the climbing gear, and nothing more (Gabby, 2026-10-19: ship
-  the smallest playable piece first). Gabby's `icon.ase` replaces the draft icon before release.
-  The 1.21.1 port waits until 0.1.0 is listed and played.
-- **Later, in order:** 0.2.0 ropes, cairns and the tent; 0.3.0 the Stone shrine and the Cairn. New
-  ideas go into a later version, never into the one being built.
+- **Next:** 3b, the climbing gear,
+  ropes, cairns and the tent (4), the Stone shrine (5), the Cairn and the 0.1.0 release (6). Gabby's
+  `icon.ase` replaces the draft icon before release.
 
 ## Sessions
 
