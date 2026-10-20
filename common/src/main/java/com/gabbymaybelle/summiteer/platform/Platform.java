@@ -41,4 +41,11 @@ public interface Platform {
 	 * Fabric, Curios' on NeoForge (one of them is required, so this always has slots to look in).
 	 */
 	boolean wearsAccessory(LivingEntity entity, Predicate<ItemStack> test);
+
+	/**
+	 * Puts something on in an accessory slot it fits: the first empty one, else the first one,
+	 * swapping. Returns what that slot held before (empty if it was empty), or null if the item
+	 * fits no slot. Server side only.
+	 */
+	ItemStack equipAccessory(LivingEntity entity, ItemStack stack);
 }

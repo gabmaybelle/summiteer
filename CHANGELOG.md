@@ -11,8 +11,10 @@
   the cold off. Leather alone no longer saves you from the cold up high; in powder snow it still
   does. Needs Curios (NeoForge) or Trinkets Updated (Fabric) for the accessory slots.
 - Climbing gear. The **ice axe**: hold it in either hand and walk into a wall of snow or ice to
-  climb it, sneak to hang on, and if you fall past one you slide down it unhurt. It wears down as
+  climb it (or bare rock, once you're above the treeline), sneak to hang on, and if you fall past
+  one you slide down it unhurt. It wears down as
   you climb, mines like an iron pickaxe and hits a little harder. **Climbing gloves** (leather,
   wool and string) keep your hands warm and climb faster. **Crampons** go in the feet slot: no
   slipping on ice, you walk on powder snow, and gusts push you half as hard. **Snow goggles** go
-  in the head slot and let you see much further in a whiteout.
+  in the head slot and let you see much further in a whiteout. Right-click the gloves, crampons or
+  goggles to put them on, the way you put on armour.

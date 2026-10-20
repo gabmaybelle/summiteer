@@ -19,6 +19,9 @@ import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.CuriosSlotTypes;
+import top.theillusivec4.curios.api.type.capability.ICuriosItemHandler;
+import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
 
 /**
  * NeoForge only lets mods register during its registry events, so everything common code
@@ -84,6 +87,36 @@ public class NeoForgePlatform implements Platform {
 	@Override
 	public boolean wearsAccessory(LivingEntity entity, Predicate<ItemStack> test) {
 		return CuriosApi.getCuriosInventory(entity).map(curios -> curios.isEquipped(test)).orElse(false);
+	}
+
+	@Override
+	public ItemStack equipAccessory(LivingEntity entity, ItemStack stack) {
+		ICuriosItemHandler curios = CuriosApi.getCuriosInventory(entity).orElse(null);
+		if (curios == null) {
+			return null;
+		}
+		String firstSlot = null;
+		for (String slot : CuriosSlotTypes.getItemSlotTypes(stack, entity).keySet()) {
+			ICurioStacksHandler handler = curios.getStacksHandler(slot).orElse(null);
+			if (handler == null) {
+				continue;
+			}
+			for (int i = 0; i < handler.getSlots(); i++) {
+				if (handler.getStacks().getStackInSlot(i).isEmpty()) {
+					curios.setEquippedCurio(slot, i, stack);
+					return ItemStack.EMPTY;
+				}
+			}
+			if (firstSlot == null && handler.getSlots() > 0) {
+				firstSlot = slot;
+			}
+		}
+		if (firstSlot == null) {
+			return null;
+		}
+		ItemStack previous = curios.getStacksHandler(firstSlot).orElseThrow().getStacks().getStackInSlot(0).copy();
+		curios.setEquippedCurio(firstSlot, 0, stack);
+		return previous;
 	}
 
 	void onRegister(RegisterEvent event) {

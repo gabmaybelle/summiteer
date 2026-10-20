@@ -16,6 +16,8 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -335,6 +337,25 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		check(bare > 1.5, "ice axe: walking into an ice wall climbs it (rose " + String.format("%.2f", bare) + " blocks in 3 s)");
 		check(gloves > bare + 0.5, "ice axe: climbing gloves climb faster (rose " + String.format("%.2f", gloves) + " blocks against " + String.format("%.2f", bare) + ")");
 
+		// Rock: the same wall in stone, on the summit and then below the treeline.
+		world.getServer().runOnServer(server -> command(server, "fill " + (site[0] + 3) + " " + (site[1] + 1) + " " + (site[2] - 2) + " "
+				+ (site[0] + 3) + " " + (site[1] + 14) + " " + (site[2] + 2) + " minecraft:stone"));
+		double rockHigh = climb(ctx, world, true, false);
+		int low = world.getServer().computeOnServer(server -> {
+			int floor = player(server).level().getSeaLevel() + 20;
+			command(server, "fill " + (site[0] - 1) + " " + floor + " " + (site[2] - 2) + " " + (site[0] + 3) + " " + (floor + 8) + " " + (site[2] + 2) + " minecraft:air");
+			command(server, "fill " + (site[0] - 1) + " " + floor + " " + (site[2] - 2) + " " + (site[0] + 3) + " " + floor + " " + (site[2] + 2) + " minecraft:stone");
+			command(server, "fill " + (site[0] + 3) + " " + (floor + 1) + " " + (site[2] - 2) + " " + (site[0] + 3) + " " + (floor + 8) + " " + (site[2] + 2) + " minecraft:stone");
+			return floor;
+		});
+		double rockLow = climb(ctx, world, true, false, low);
+		check(rockHigh > 1.5, "ice axe: it climbs rock on a summit (rose " + String.format("%.2f", rockHigh) + " blocks in 3 s)");
+		check(rockLow < 0.6, "ice axe: it doesn't climb rock below the treeline (rose " + String.format("%.2f", rockLow) + " blocks in 3 s)");
+		world.getServer().runOnServer(server -> command(server, "fill " + (site[0] + 3) + " " + (site[1] + 1) + " " + (site[2] - 2) + " "
+				+ (site[0] + 3) + " " + (site[1] + 14) + " " + (site[2] + 2) + " minecraft:packed_ice"));
+
+		rightClick(world);
+
 		float hurtWithout = drop(ctx, world, false);
 		float hurtWith = drop(ctx, world, true);
 		check(hurtWithout >= 4, "ice axe: the fall hurts without it (lost " + hurtWithout + " health)");
@@ -362,22 +383,54 @@ public class SummiteerClientTest implements FabricClientGameTest {
 
 	/** Walks east into the ice wall for three seconds; how many blocks the player rose. */
 	private double climb(ClientGameTestContext ctx, TestSingleplayerContext world, boolean axe, boolean gloves) {
+		return climb(ctx, world, axe, gloves, site[1]);
+	}
+
+	/** Walks east into the wall three blocks east of the middle, standing on {@code floor}. */
+	private double climb(ClientGameTestContext ctx, TestSingleplayerContext world, boolean axe, boolean gloves, int floor) {
 		world.getServer().runOnServer(server -> {
 			ServerPlayer player = player(server);
 			player.setItemInHand(InteractionHand.MAIN_HAND, axe ? new ItemStack(Gear.ICE_AXE.get()) : ItemStack.EMPTY);
 			slot(player, "hand/glove").setItem(0, gloves ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
 			// Facing east (yaw -90), towards the wall.
-			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5) + " -90 0");
+			command(server, "tp @a " + (site[0] + 0.5) + " " + (floor + 1) + " " + (site[2] + 0.5) + " -90 0");
 			player.setDeltaMovement(0, 0, 0);
 		});
 		ctx.waitTicks(10);
 		ctx.getInput().holdKeyFor(options -> options.keyUp, 60);
-		double rose = world.getServer().computeOnServer(server -> player(server).getY() - (site[1] + 1));
+		double rose = world.getServer().computeOnServer(server -> player(server).getY() - (floor + 1));
 		if (axe && gloves) {
 			ctx.takeScreenshot("ice-axe-climb");
 		}
 		Summiteer.LOGGER.info("[test] climb with axe {} and gloves {}: rose {}", axe, gloves, rose);
 		return rose;
+	}
+
+	/**
+	 * Right-click: crampons in hand go on in the empty feet slot and leave the hand empty; a second
+	 * pair of climbing gloves (named "new") swaps with the pair already worn, which ends up in hand.
+	 */
+	private void rightClick(TestSingleplayerContext world) {
+		String result = world.getServer().computeOnServer(server -> {
+			ServerPlayer player = player(server);
+			slot(player, "feet/shoes").setItem(0, ItemStack.EMPTY);
+			slot(player, "hand/glove").setItem(0, new ItemStack(Clothes.CLIMBING_GLOVES.get()));
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Gear.CRAMPONS.get()));
+			player.getMainHandItem().use(player.level(), player, InteractionHand.MAIN_HAND);
+			boolean cramponsOn = slot(player, "feet/shoes").getItem(0).is(Gear.CRAMPONS.get()) && player.getMainHandItem().isEmpty();
+			ItemStack fresh = new ItemStack(Clothes.CLIMBING_GLOVES.get());
+			fresh.set(DataComponents.CUSTOM_NAME, Component.literal("new"));
+			player.setItemInHand(InteractionHand.MAIN_HAND, fresh);
+			player.getMainHandItem().use(player.level(), player, InteractionHand.MAIN_HAND);
+			ItemStack worn = slot(player, "hand/glove").getItem(0);
+			ItemStack hand = player.getMainHandItem();
+			boolean swapped = worn.has(DataComponents.CUSTOM_NAME) && hand.is(Clothes.CLIMBING_GLOVES.get()) && !hand.has(DataComponents.CUSTOM_NAME);
+			slot(player, "feet/shoes").setItem(0, ItemStack.EMPTY);
+			slot(player, "hand/glove").setItem(0, ItemStack.EMPTY);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			return "crampons " + (cramponsOn ? "on" : "not on") + ", gloves " + (swapped ? "swapped" : "not swapped");
+		});
+		check(result.equals("crampons on, gloves swapped"), "right-click: gear goes on, swapping with what you wore (" + result + ")");
 	}
 
 	/** Drops the player from 18 blocks up, against the ice wall; how much health the landing cost. */

@@ -17,7 +17,7 @@ mountaineer, then take on the temples at the top of the ranges.
 - **Mountain clothes.** A beanie, parka, snow pants and wool socks, dyeable like leather: warm, but
   only as tough as leather, so you choose between staying warm and staying armoured. Climbing
   gloves keep your hands warm too.
-- **Mountaineering gear.** An ice axe for climbing snow and ice and stopping a fall, crampons for
+- **Mountaineering gear.** An ice axe for climbing snow, ice and high rock and stopping a fall, crampons for
   ice and powder snow, snow goggles for whiteouts, then ropes and anchors, trail cairns that show
   through fog, and a base camp tent to respawn at.
 - **Three mountain temples, three bosses.** The Stone shrine on stony peaks, the Frost shrine on

@@ -7,16 +7,22 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
+import com.gabbymaybelle.summiteer.zones.Zone;
+import com.gabbymaybelle.summiteer.zones.Zones;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CreativeModeTab;
@@ -27,6 +33,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
 /**
@@ -36,20 +43,28 @@ import net.minecraft.world.phys.AABB;
  * <ul>
  * <li>Snow goggles: you see further in a whiteout.</li>
  * <li>Crampons: no slipping on ice, you walk on powder snow, and gusts push you half as hard.</li>
- * <li>Ice axe: climb snow and ice walls (see {@link Climbing}); a pickaxe, and a fair weapon.</li>
+ * <li>Ice axe: climb snow and ice walls, and natural rock above the treeline (see {@link Climbing});
+ * a pickaxe, and a fair weapon.</li>
  * </ul>
+ *
+ * <p>Right-clicking the goggles, crampons or gloves puts them on, swapping with what you wore, the
+ * way armour does; dragging them into the slot works too.
  */
 public final class Gear {
-	/** The walls an ice axe bites into: snow and ice, and whatever a data pack adds. */
+	/** The walls an ice axe bites into anywhere: snow and ice, and whatever a data pack adds. */
 	public static final TagKey<Block> ICE_AXE_CLIMBABLE = TagKey.create(Registries.BLOCK, Summiteer.id("ice_axe_climbable"));
+	/** The walls it bites into only above the treeline: natural rock. */
+	public static final TagKey<Block> ICE_AXE_CLIMBABLE_HIGH = TagKey.create(Registries.BLOCK, Summiteer.id("ice_axe_climbable_high"));
 
 	/** The most slippery a block can be under crampons: ordinary ground (ice is 0.98). */
 	public static final float CRAMPON_FRICTION = 0.6F;
 
-	public static final Supplier<Item> SNOW_GOGGLES = item("snow_goggles", properties -> properties.stacksTo(1));
-	public static final Supplier<Item> CRAMPONS = item("crampons", properties -> properties.stacksTo(1));
+	public static final Supplier<Item> SNOW_GOGGLES = item("snow_goggles", properties -> properties.stacksTo(1),
+			properties -> new Accessory(properties, SoundEvents.ARMOR_EQUIP_LEATHER));
+	public static final Supplier<Item> CRAMPONS = item("crampons", properties -> properties.stacksTo(1),
+			properties -> new Accessory(properties, SoundEvents.ARMOR_EQUIP_CHAIN));
 	/** An iron pickaxe with a sharper edge: 5 damage at 1.4 attacks a second (the pickaxe does 4 at 1.2). */
-	public static final Supplier<Item> ICE_AXE = item("ice_axe", properties -> properties.pickaxe(ToolMaterial.IRON, 2.0F, -2.6F));
+	public static final Supplier<Item> ICE_AXE = item("ice_axe", properties -> properties.pickaxe(ToolMaterial.IRON, 2.0F, -2.6F), Described::new);
 
 	private static final ResourceKey<CreativeModeTab> COMBAT_TAB = vanillaTab("combat");
 	private static final ResourceKey<CreativeModeTab> TOOLS_TAB = vanillaTab("tools_and_utilities");
@@ -90,8 +105,10 @@ public final class Gear {
 	}
 
 	/**
-	 * Whether a player is on a wall with the ice axe: holding one, and touching a snow or ice block
-	 * beside them at foot or body height. The block under their feet doesn't count.
+	 * Whether a player is on a wall with the ice axe: holding one, and touching a block it grips
+	 * (see {@link Climbing#grips}) beside them at foot or body height. The block under their feet
+	 * doesn't count. Rock asks which zone the player is in, the client by its own settings like the
+	 * whiteout does, so a server with different heights could disagree near the treeline.
 	 */
 	public static boolean onIceWall(LivingEntity entity) {
 		if (!(entity instanceof Player player) || player.isSpectator() || player.getAbilities().flying || iceAxeHand(player) == null) {
@@ -101,8 +118,18 @@ public final class Gear {
 		Level level = player.level();
 		BlockPos min = BlockPos.containing(box.minX - Climbing.REACH, box.minY + 0.1, box.minZ - Climbing.REACH);
 		BlockPos max = BlockPos.containing(box.maxX + Climbing.REACH, Math.min(box.maxY - 0.1, box.minY + 1.2), box.maxZ + Climbing.REACH);
+		Zone zone = null;
 		for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
-			if (level.getBlockState(pos).is(ICE_AXE_CLIMBABLE) && !level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) {
+			BlockState state = level.getBlockState(pos);
+			boolean snowOrIce = state.is(ICE_AXE_CLIMBABLE);
+			boolean rock = !snowOrIce && state.is(ICE_AXE_CLIMBABLE_HIGH);
+			if (!snowOrIce && !rock || state.getCollisionShape(level, pos).isEmpty()) {
+				continue;
+			}
+			if (rock && zone == null) {
+				zone = Zones.at(level, player.blockPosition());
+			}
+			if (Climbing.grips(snowOrIce, rock, zone)) {
 				return true;
 			}
 		}
@@ -139,10 +166,10 @@ public final class Gear {
 	}
 
 	/** The properties are only built inside the registration (see {@code Clothes.item}). */
-	private static Supplier<Item> item(String name, Function<Item.Properties, Item.Properties> properties) {
+	private static Supplier<Item> item(String name, Function<Item.Properties, Item.Properties> properties, Function<Item.Properties, Item> kind) {
 		Identifier id = Summiteer.id(name);
 		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-		return Services.PLATFORM.register(Registries.ITEM, id, () -> new Described(properties.apply(new Item.Properties()).setId(key)));
+		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.apply(new Item.Properties()).setId(key)));
 	}
 
 	/** An item with a grey line under its name saying what it does ({@code item.summiteer.<name>.desc}). */
@@ -155,6 +182,34 @@ public final class Gear {
 		@SuppressWarnings("deprecation") // Mojang's marker for "override, don't call"; vanilla's items do the same.
 		public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
 			builder.accept(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+		}
+	}
+
+	/**
+	 * Something worn in an accessory slot: right-click puts it on, in the first empty slot it fits,
+	 * else swapped with what is in the first one, and what came off goes to your hand.
+	 */
+	public static class Accessory extends Described {
+		private final Holder<SoundEvent> sound;
+
+		public Accessory(Item.Properties properties, Holder<SoundEvent> sound) {
+			super(properties);
+			this.sound = sound;
+		}
+
+		@Override
+		public InteractionResult use(Level level, Player player, InteractionHand hand) {
+			if (level.isClientSide()) {
+				return InteractionResult.SUCCESS;
+			}
+			ItemStack held = player.getItemInHand(hand);
+			ItemStack previous = Services.PLATFORM.equipAccessory(player, held.copy());
+			if (previous == null) {
+				return InteractionResult.PASS;
+			}
+			player.setItemInHand(hand, previous);
+			level.playSound(null, player.getX(), player.getY(), player.getZ(), sound, player.getSoundSource(), 1.0F, 1.0F);
+			return InteractionResult.SUCCESS_SERVER;
 		}
 	}
 }

@@ -49,7 +49,8 @@ public final class Clothes {
 	public static final Supplier<Item> PARKA = armour("parka", ArmorType.CHESTPLATE);
 	public static final Supplier<Item> SNOW_PANTS = armour("snow_pants", ArmorType.LEGGINGS);
 	public static final Supplier<Item> WOOL_SOCKS = armour("wool_socks", ArmorType.BOOTS);
-	public static final Supplier<Item> CLIMBING_GLOVES = item("climbing_gloves", () -> new Item.Properties().stacksTo(1), Gear.Described::new);
+	public static final Supplier<Item> CLIMBING_GLOVES = item("climbing_gloves", () -> new Item.Properties().stacksTo(1),
+			properties -> new Gear.Accessory(properties, SoundEvents.ARMOR_EQUIP_LEATHER));
 
 	/** Vanilla's Combat tab, beside the leather armour (its key is private in CreativeModeTabs). */
 	private static final ResourceKey<CreativeModeTab> COMBAT_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("combat"));

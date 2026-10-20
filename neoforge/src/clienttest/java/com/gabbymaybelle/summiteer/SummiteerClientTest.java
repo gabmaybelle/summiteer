@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -254,7 +256,9 @@ final class SummiteerClientTest {
 	}
 
 	/** What each part of the gear check measured, for the checks at the end. */
-	private static final double[] CLIMB = new double[3];
+	private static final double[] CLIMB = new double[5];
+	private static final int[] LOW_FLOOR = new int[1];
+	private static final String[] RIGHT_CLICK = new String[1];
 	private static final float[] LOST = new float[2];
 	private static final double[] SLID = new double[2];
 	private static final String[] WALKS = new String[2];
@@ -279,12 +283,30 @@ final class SummiteerClientTest {
 		climb(0, false, false);
 		climb(1, true, false);
 		climb(2, true, true);
+		// Rock: the same wall in stone, on the summit and then below the treeline.
+		run(mc -> onServer(mc, server -> serverCommand(server, "fill " + (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] - 2) + " "
+				+ (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 14) + " " + (SITE_AT[2] + 2) + " minecraft:stone")));
+		climb(3, true, false);
+		run(mc -> onServer(mc, server -> {
+			int floor = player(server).level().getSeaLevel() + 20;
+			LOW_FLOOR[0] = floor;
+			serverCommand(server, "fill " + (SITE_AT[0] - 1) + " " + floor + " " + (SITE_AT[2] - 2) + " " + (SITE_AT[0] + 3) + " " + (floor + 8) + " " + (SITE_AT[2] + 2) + " minecraft:air");
+			serverCommand(server, "fill " + (SITE_AT[0] - 1) + " " + floor + " " + (SITE_AT[2] - 2) + " " + (SITE_AT[0] + 3) + " " + floor + " " + (SITE_AT[2] + 2) + " minecraft:stone");
+			serverCommand(server, "fill " + (SITE_AT[0] + 3) + " " + (floor + 1) + " " + (SITE_AT[2] - 2) + " " + (SITE_AT[0] + 3) + " " + (floor + 8) + " " + (SITE_AT[2] + 2) + " minecraft:stone");
+		}));
+		climb(4, true, false, () -> LOW_FLOOR[0]);
+		run(mc -> onServer(mc, server -> serverCommand(server, "fill " + (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] - 2) + " "
+				+ (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 14) + " " + (SITE_AT[2] + 2) + " minecraft:packed_ice")));
 		run(mc -> {
 			check(CLIMB[0] < 0.6, "Ice axe: you climbed an ice wall without it (rose " + String.format("%.2f", CLIMB[0]) + " blocks in 3 s)");
 			check(CLIMB[1] > 1.5, "Ice axe: walking into an ice wall didn't climb it (rose " + String.format("%.2f", CLIMB[1]) + " blocks in 3 s)");
 			check(CLIMB[2] > CLIMB[1] + 0.5, "Ice axe: climbing gloves didn't climb faster (rose " + String.format("%.2f", CLIMB[2])
 					+ " blocks against " + String.format("%.2f", CLIMB[1]) + ")");
+			check(CLIMB[3] > 1.5, "Ice axe: it didn't climb rock on a summit (rose " + String.format("%.2f", CLIMB[3]) + " blocks in 3 s)");
+			check(CLIMB[4] < 0.6, "Ice axe: it climbed rock below the treeline (rose " + String.format("%.2f", CLIMB[4]) + " blocks in 3 s)");
 		});
+
+		rightClick();
 
 		drop(0, false);
 		drop(1, true);
@@ -316,12 +338,17 @@ final class SummiteerClientTest {
 
 	/** Walks east into the ice wall for three seconds; stores how many blocks the player rose. */
 	private static void climb(int index, boolean axe, boolean gloves) {
+		climb(index, axe, gloves, () -> SITE_AT[1]);
+	}
+
+	/** Walks east into the wall three blocks east of the middle, standing on {@code floor}. */
+	private static void climb(int index, boolean axe, boolean gloves, java.util.function.IntSupplier floor) {
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
 			player.setItemInHand(InteractionHand.MAIN_HAND, axe ? new ItemStack(Gear.ICE_AXE.get()) : ItemStack.EMPTY);
 			equip(player, "hands", gloves ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
 			// Facing east (yaw -90), towards the wall.
-			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5) + " -90 0");
+			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (floor.getAsInt() + 1) + " " + (SITE_AT[2] + 0.5) + " -90 0");
 			player.setDeltaMovement(0, 0, 0);
 		}));
 		waitTicks(10);
@@ -330,13 +357,43 @@ final class SummiteerClientTest {
 		run(mc -> {
 			mc.options.keyUp.setDown(false);
 			onServer(mc, server -> {
-				CLIMB[index] = player(server).getY() - (SITE_AT[1] + 1);
+				CLIMB[index] = player(server).getY() - (floor.getAsInt() + 1);
 				Summiteer.LOGGER.info("[test] climb with axe {} and gloves {}: rose {}", axe, gloves, CLIMB[index]);
 			});
 		});
 		if (axe && gloves) {
 			ClientTest.screenshot();
 		}
+	}
+
+	/**
+	 * Right-click: crampons in hand go on in the empty feet slot and leave the hand empty; a second
+	 * pair of climbing gloves (named "new") swaps with the pair already worn, which ends up in hand.
+	 */
+	private static void rightClick() {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			equip(player, "feet", ItemStack.EMPTY);
+			equip(player, "hands", new ItemStack(Clothes.CLIMBING_GLOVES.get()));
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Gear.CRAMPONS.get()));
+			player.getMainHandItem().use(player.level(), player, InteractionHand.MAIN_HAND);
+			var curios = CuriosApi.getCuriosInventory(player).orElseThrow();
+			boolean cramponsOn = curios.getStacksHandler("feet").orElseThrow().getStacks().getStackInSlot(0).is(Gear.CRAMPONS.get())
+					&& player.getMainHandItem().isEmpty();
+			ItemStack fresh = new ItemStack(Clothes.CLIMBING_GLOVES.get());
+			fresh.set(DataComponents.CUSTOM_NAME, Component.literal("new"));
+			player.setItemInHand(InteractionHand.MAIN_HAND, fresh);
+			player.getMainHandItem().use(player.level(), player, InteractionHand.MAIN_HAND);
+			ItemStack worn = curios.getStacksHandler("hands").orElseThrow().getStacks().getStackInSlot(0);
+			ItemStack hand = player.getMainHandItem();
+			boolean swapped = worn.has(DataComponents.CUSTOM_NAME) && hand.is(Clothes.CLIMBING_GLOVES.get()) && !hand.has(DataComponents.CUSTOM_NAME);
+			equip(player, "feet", ItemStack.EMPTY);
+			equip(player, "hands", ItemStack.EMPTY);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			RIGHT_CLICK[0] = "crampons " + (cramponsOn ? "on" : "not on") + ", gloves " + (swapped ? "swapped" : "not swapped");
+			Summiteer.LOGGER.info("[test] right-click: {}", RIGHT_CLICK[0]);
+		}));
+		run(mc -> check(RIGHT_CLICK[0].equals("crampons on, gloves swapped"), "Right-click: gear didn't go on, swapping with what you wore (" + RIGHT_CLICK[0] + ")"));
 	}
 
 	/** Drops the player from 18 blocks up, against the ice wall; stores how much health the landing cost. */

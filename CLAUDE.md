@@ -35,8 +35,11 @@ first, and add this session's row before ending.
   requirement. No Forge build (too few Forge downloads, and Curios has no
   Forge build on 26.x).
 - **Climbing gear** (`gear/`, decided 2026-10-19): goggles and crampons are accessories, not
-  strapped onto armour, so they work with any armour and swap freely. The ice axe in either hand
-  makes a snow or ice wall (`summiteer:ice_axe_climbable`) a ladder: `mixin/LivingEntityMixin`
+  strapped onto armour, so they work with any armour and swap freely; right-click puts them on
+  (`Gear.Accessory`, `Platform.equipAccessory`: the first empty slot that fits, else a swap). The
+  ice axe in either hand makes a snow or ice wall (`summiteer:ice_axe_climbable`) a ladder, and
+  natural rock (`summiteer:ice_axe_climbable_high`) above the treeline only (decided 2026-10-20: real
+  mountain faces are stone under a snow cap; `Climbing.grips`): `mixin/LivingEntityMixin`
   answers `onClimbable`, so vanilla's ladder rules give the slide, the sneak-to-hang and the fall
   reset; only the climb speed is ours (`Climbing`, 1 block a second, 1.6 in climbing gloves). The
   server resets fall distance and wears the axe once a second on a wall (`Gear.serverTick`).

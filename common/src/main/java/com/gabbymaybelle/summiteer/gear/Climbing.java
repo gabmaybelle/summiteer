@@ -1,10 +1,13 @@
 package com.gabbymaybelle.summiteer.gear;
 
+import com.gabbymaybelle.summiteer.zones.Zone;
+
 /**
  * The rules for climbing with the ice axe, kept free of the game so they can be unit tested.
  * {@link Gear} and the {@code LivingEntity} mixin apply them.
  *
- * <p>An ice axe in either hand turns a snow or ice wall into a ladder: walk into it to climb,
+ * <p>An ice axe in either hand turns a snow or ice wall into a ladder, and natural rock too once
+ * you are above the treeline (see {@link #grips}): walk into it to climb,
  * sneak to hang still, and falling past one you slide down at a ladder's pace and take no fall
  * damage (the self-arrest). The slide and the hang are vanilla's ladder rules; only the climbing
  * speed is Summiteer's: slower than a ladder, faster with climbing gloves.
@@ -24,6 +27,14 @@ public final class Climbing {
 	public static final int WEAR_TICKS = 20;
 
 	private Climbing() {
+	}
+
+	/**
+	 * Whether the axe bites into a wall: snow and ice anywhere, natural rock only above the treeline
+	 * (high ground or a summit), so it stays a mountain tool.
+	 */
+	public static boolean grips(boolean snowOrIce, boolean rock, Zone zone) {
+		return snowOrIce || rock && zone != Zone.LOW;
 	}
 
 	/** Blocks per second up a wall, with or without climbing gloves. */
