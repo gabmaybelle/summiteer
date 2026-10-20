@@ -6,7 +6,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"com.gabbymaybelle.summiteer.SummiteerClientTest"
+			"com.gabbymaybelle.summiteer.SummiteerClientTest",
+			"com.gabbymaybelle.summiteer.VideoTour"
 		]
 	},
 	"depends": {
