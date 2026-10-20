@@ -92,9 +92,6 @@ One job per mod, decided 2026-10-15, so nothing is done twice and each repo tell
   blocks alone (each an ordinary game rule, with world-wide switches too); keep your hotbar on
   death, cheap wood in the stonecutter, re-dyeing and builder trades. Fabric and NeoForge jars, plus a plain
   data pack of the recipes.
-- **Espresso Flavoured Core** (espresso-flavoured): the café: coffee you grow and brew, mugs,
-  baristas, Bean Coins, the café charms, and Drowsy (coffee's reason to exist). Longer days stay a
-  Core setting for now. The survival rules Cozy Core now covers left Core in 0.4.0 (its PLAN-0.4.0.md).
 - **Spawn Gazebo** (spawn-gazebo): the gazebo at the world spawn and its starter chest.
 - **Nightfall Clock** (nightfall-clock): the clock above the hotbar and the dusk warning.
 - **Pocket List** (pocket-list): the gathering checklist.
