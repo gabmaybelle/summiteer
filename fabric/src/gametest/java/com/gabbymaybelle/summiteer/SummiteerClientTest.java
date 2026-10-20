@@ -345,7 +345,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 
 		double sank = powderSnow(ctx, world, false);
 		double stood = powderSnow(ctx, world, true);
-		check(sank > 0.4 && stood < 0.05, "crampons: you walk on powder snow (sank " + String.format("%.2f", stood) + " blocks in them, "
+		check(sank > 0.4 && sank < 1.1 && stood < 0.05, "crampons: you walk on powder snow (sank " + String.format("%.2f", stood) + " blocks in them, "
 				+ String.format("%.2f", sank) + " without)");
 
 		world.getServer().runOnServer(server -> {
@@ -417,20 +417,25 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		return slid;
 	}
 
-	/** Stands the player on a patch of powder snow for two seconds; how far they sank. */
+	/**
+	 * Stands the player on a patch of powder snow (one block deep, stone under it) for two seconds;
+	 * how far they sank. The crampons go on or off a second before the snow appears: the player
+	 * moves on the client, so the client has to know what they're wearing first.
+	 */
 	private double powderSnow(ClientGameTestContext ctx, TestSingleplayerContext world, boolean crampons) {
+		world.getServer().runOnServer(server ->
+				slot(player(server), "feet/shoes").setItem(0, crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY));
+		ctx.waitTicks(20);
 		world.getServer().runOnServer(server -> {
-			ServerPlayer player = player(server);
-			slot(player, "feet/shoes").setItem(0, crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY);
-			command(server, "fill " + (site[0] - 1) + " " + (site[1] - 1) + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:powder_snow");
+			command(server, "fill " + (site[0] - 1) + " " + site[1] + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:powder_snow");
 			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 5.5));
-			player.setDeltaMovement(0, 0, 0);
+			player(server).setDeltaMovement(0, 0, 0);
 		});
 		ctx.waitTicks(40);
 		double sank = world.getServer().computeOnServer(server -> (site[1] + 1) - player(server).getY());
 		world.getServer().runOnServer(server -> {
 			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5));
-			command(server, "fill " + (site[0] - 1) + " " + (site[1] - 1) + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:stone");
+			command(server, "fill " + (site[0] - 1) + " " + site[1] + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:stone");
 			player(server).setTicksFrozen(0);
 		});
 		Summiteer.LOGGER.info("[test] on powder snow with crampons {}: sank {}", crampons, sank);

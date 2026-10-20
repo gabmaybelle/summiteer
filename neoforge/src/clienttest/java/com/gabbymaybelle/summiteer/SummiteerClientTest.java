@@ -299,7 +299,7 @@ final class SummiteerClientTest {
 
 		powderSnow(0, false);
 		powderSnow(1, true);
-		run(mc -> check(SANK[0] > 0.4 && SANK[1] < 0.05, "Crampons: you didn't walk on powder snow (sank " + String.format("%.2f", SANK[1])
+		run(mc -> check(SANK[0] > 0.4 && SANK[0] < 1.1 && SANK[1] < 0.05, "Crampons: you didn't walk on powder snow (sank " + String.format("%.2f", SANK[1])
 				+ " blocks in them, " + String.format("%.2f", SANK[0]) + " without)"));
 
 		run(mc -> onServer(mc, server -> {
@@ -379,12 +379,17 @@ final class SummiteerClientTest {
 		}));
 	}
 
-	/** Stands the player on a patch of powder snow for two seconds; stores how far they sank. */
+	/**
+	 * Stands the player on a patch of powder snow (one block deep, stone under it) for two seconds;
+	 * stores how far they sank. The crampons go on or off a second before the snow appears: the
+	 * player moves on the client, so the client has to know what they're wearing first.
+	 */
 	private static void powderSnow(int index, boolean crampons) {
-		String patch = (SITE_AT[0] - 1) + " " + (SITE_AT[1] - 1) + " " + (SITE_AT[2] + 4) + " " + (SITE_AT[0] + 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 6);
+		String patch = (SITE_AT[0] - 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 4) + " " + (SITE_AT[0] + 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 6);
+		run(mc -> onServer(mc, server -> equip(player(server), "feet", crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY)));
+		waitTicks(20);
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
-			equip(player, "feet", crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY);
 			serverCommand(server, "fill " + patch + " minecraft:powder_snow");
 			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 5.5));
 			player.setDeltaMovement(0, 0, 0);
