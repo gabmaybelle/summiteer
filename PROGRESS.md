@@ -7,7 +7,7 @@
   the bands; an in-game zone check on both loaders; CI runs the build and both in-game tests on their
   own, with Tectonic and with Terralith.
 - **Broken:** nothing known.
-- **Next:** the 0.1.0 release (3c): Gabby's art for the icon and the gear and clothes sprites,
+- **Next:** the 0.1.0 release (3c): Gabby's art for the gear and clothes sprites (the icon is done),
   then a short check of the release jar (window and textures), then LIFECYCLE step 4. **0.1.0 scope
   is locked** (Gabby, 2026-10-19): the weather, the clothes and the climbing gear, nothing more.
   Ropes, cairns and the tent are 0.2.0; the Stone shrine and the Cairn 0.3.0; avalanches and the

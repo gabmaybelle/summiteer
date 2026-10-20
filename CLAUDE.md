@@ -66,7 +66,8 @@ One codebase, two jars:
 - `fabric/src/gametest/`: the Fabric client game test (`SummiteerClientTest`).
 - `neoforge/src/clienttest/`: the NeoForge in-game test: `ClientTest` runs steps one tick at a time
   and crashes the game on a failed check; `SummiteerClientTest` holds the same checks as the Fabric one.
-- `art/`: Gabby's own pixel art (Aseprite). The icon is a draft until her `icon.ase` replaces it.
+- `art/`: the pixel art in Aseprite files: `icon.aseprite` (the icon, 64x64 in layers, chosen 2026-10-20);
+  the item sprites are drafts until Gabby's own replace them.
 
 Registering anything (items, blocks, entities) goes through `Services.PLATFORM.register(...)`,
 never `Registry.register` directly: NeoForge only accepts registrations in its registry event, so

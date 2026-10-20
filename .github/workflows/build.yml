@@ -2,9 +2,15 @@
 # display (fabric/src/gametest and neoforge/src/clienttest), on their own and with each tall-terrain
 # mod, so a broken build, a crash in game or a clash with Tectonic or Terralith shows up straight
 # away. The built jars are attached to each run under "Artifacts", and the screenshots alongside.
+# A push or pull request that only changes notes (Markdown), the art sources in art/ or the licence
+# is skipped: none of those end up in the jar. Anything else, the textures and icon included, runs.
 
 name: build
-on: [pull_request, push]
+on:
+  push:
+    paths-ignore: ['**.md', 'art/**', 'LICENSE']
+  pull_request:
+    paths-ignore: ['**.md', 'art/**', 'LICENSE']
 
 permissions:
   contents: read
