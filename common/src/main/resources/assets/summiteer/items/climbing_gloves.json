@@ -1,12 +1,31 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "summiteer:item/climbing_gloves",
-    "tints": [
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
       {
-        "type": "minecraft:dye",
-        "default": -1647157
+        "when": "none",
+        "model": {
+          "type": "minecraft:model",
+          "model": "summiteer:item/worn/climbing_gloves",
+          "tints": [
+            {
+              "type": "minecraft:dye",
+              "default": -1647157
+            }
+          ]
+        }
       }
-    ]
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "summiteer:item/climbing_gloves",
+      "tints": [
+        {
+          "type": "minecraft:dye",
+          "default": -1647157
+        }
+      ]
+    }
   }
 }

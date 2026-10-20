@@ -1,6 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "summiteer:item/parka"
+    "layer0": "summiteer:item/parka",
+    "layer1": "summiteer:item/parka_overlay"
   }
 }

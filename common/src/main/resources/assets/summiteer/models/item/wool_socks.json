@@ -1,6 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "summiteer:item/wool_socks"
+    "layer0": "summiteer:item/wool_socks",
+    "layer1": "summiteer:item/wool_socks_overlay"
   }
 }

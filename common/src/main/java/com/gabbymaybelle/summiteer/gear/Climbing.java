@@ -23,8 +23,6 @@ public final class Climbing {
 
 	/** How far from the wall still counts as touching it, in blocks. */
 	public static final double REACH = 0.05;
-	/** The axe wears by one for every this many ticks spent on a wall: a second. */
-	public static final int WEAR_TICKS = 20;
 
 	private Climbing() {
 	}

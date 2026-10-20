@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.CameraType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -355,6 +356,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 				+ (site[0] + 3) + " " + (site[1] + 14) + " " + (site[2] + 2) + " minecraft:packed_ice"));
 
 		rightClick(world);
+		wornGear(ctx, world);
 
 		float hurtWithout = drop(ctx, world, false);
 		float hurtWith = drop(ctx, world, true);
@@ -431,6 +433,59 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			return "crampons " + (cramponsOn ? "on" : "not on") + ", gloves " + (swapped ? "swapped" : "not swapped");
 		});
 		check(result.equals("crampons on, gloves swapped"), "right-click: gear goes on, swapping with what you wore (" + result + ")");
+	}
+
+	/**
+	 * Worn gear on the player, for judging the look: the camera turns to face the player, who wears
+	 * the goggles, crampons and gloves, first bare-headed and then with the beanie and wool socks
+	 * (the gear should show over them).
+	 */
+	private void wornGear(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Gear.ICE_AXE.get()));
+			slot(player, "head/face").setItem(0, new ItemStack(Gear.SNOW_GOGGLES.get()));
+			slot(player, "feet/shoes").setItem(0, new ItemStack(Gear.CRAMPONS.get()));
+			slot(player, "hand/glove").setItem(0, new ItemStack(Clothes.CLIMBING_GLOVES.get()));
+			command(server, "tp @a " + (site[0] - 5.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5) + " 0 0");
+		});
+		// Facing the player, close up, with the hotbar and chat hidden.
+		int fov = ctx.computeOnClient(client -> client.options.fov().get());
+		ctx.runOnClient(client -> {
+			client.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+			if (!client.gui.hud.isHidden()) {
+				client.gui.hud.toggle();
+			}
+			client.options.fov().set(45);
+		});
+		ctx.waitTicks(20);
+		ctx.takeScreenshot("worn-gear");
+		ctx.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+		ctx.waitTicks(10);
+		ctx.takeScreenshot("worn-gear-back");
+		ctx.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
+		world.getServer().runOnServer(server -> {
+			player(server).setItemSlot(EquipmentSlot.HEAD, new ItemStack(Clothes.BEANIE.get()));
+			player(server).setItemSlot(EquipmentSlot.FEET, new ItemStack(Clothes.WOOL_SOCKS.get()));
+		});
+		ctx.waitTicks(10);
+		ctx.takeScreenshot("worn-gear-over-clothes");
+		ctx.runOnClient(client -> {
+			client.options.setCameraType(CameraType.FIRST_PERSON);
+			if (client.gui.hud.isHidden()) {
+				client.gui.hud.toggle();
+			}
+			client.options.fov().set(fov);
+		});
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+			player.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			slot(player, "head/face").setItem(0, ItemStack.EMPTY);
+			slot(player, "feet/shoes").setItem(0, ItemStack.EMPTY);
+			slot(player, "hand/glove").setItem(0, ItemStack.EMPTY);
+		});
 	}
 
 	/** Drops the player from 18 blocks up, against the ice wall; how much health the landing cost. */

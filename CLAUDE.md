@@ -42,9 +42,16 @@ first, and add this session's row before ending.
   mountain faces are stone under a snow cap; `Climbing.grips`): `mixin/LivingEntityMixin`
   answers `onClimbable`, so vanilla's ladder rules give the slide, the sneak-to-hang and the fall
   reset; only the climb speed is ours (`Climbing`, 1 block a second, 1.6 in climbing gloves). The
-  server resets fall distance and wears the axe once a second on a wall (`Gear.serverTick`).
+  server resets fall distance on a wall (`Gear.serverTick`); climbing doesn't wear the axe
+  (decided 2026-10-20), only mining and fighting do.
   Crampons cap block friction at 0.6 (ordinary ground) and walk on powder snow
   (`mixin/PowderSnowBlockMixin`); gusts push half as hard. Goggles push the whiteout fog out to 48.
+  **Worn gear shows on the player** (decided 2026-10-20): each of the three has a small worn model
+  (`models/item/worn/`, a few boxes, sitting just outside where armour sits) that its item file picks
+  for the "none" display context; Fabric attaches it with Trinkets Updated's `assets/summiteer/trinkets/`
+  files (Trinkets applies `scale(1, -1, -1)` itself, so ours is `scale(-1, 1, -1)`), NeoForge with
+  `neoforge/client/WornGearRenderer` (vanilla's pumpkin-on-a-head turn, `scale(-1, -1, 1)`). Both
+  game tests take front, back and over-the-clothes screenshots of it.
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
   structure type (it samples the ground under the shrine's footing); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third

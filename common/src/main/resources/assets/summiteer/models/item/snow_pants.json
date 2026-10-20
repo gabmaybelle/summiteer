@@ -1,6 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "summiteer:item/snow_pants"
+    "layer0": "summiteer:item/snow_pants",
+    "layer1": "summiteer:item/snow_pants_overlay"
   }
 }

@@ -1,6 +1,19 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "summiteer:item/crampons"
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      {
+        "when": "none",
+        "model": {
+          "type": "minecraft:model",
+          "model": "summiteer:item/worn/crampons"
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "summiteer:item/crampons"
+    }
   }
 }

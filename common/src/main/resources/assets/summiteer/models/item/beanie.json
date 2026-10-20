@@ -1,6 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "summiteer:item/beanie"
+    "layer0": "summiteer:item/beanie",
+    "layer1": "summiteer:item/beanie_overlay"
   }
 }

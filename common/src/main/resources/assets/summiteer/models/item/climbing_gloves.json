@@ -1,6 +1,7 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "summiteer:item/climbing_gloves"
+    "layer0": "summiteer:item/climbing_gloves",
+    "layer1": "summiteer:item/climbing_gloves_overlay"
   }
 }

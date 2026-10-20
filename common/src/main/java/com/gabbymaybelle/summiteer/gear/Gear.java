@@ -146,8 +146,8 @@ public final class Gear {
 
 	/**
 	 * The server's part of climbing, every tick: a player on a wall takes no fall damage when they
-	 * reach the ground (the client already stops it; this makes the server agree), and the axe
-	 * wears by one for each second spent on a wall off the ground.
+	 * reach the ground (the client already stops it; this makes the server agree). Climbing doesn't
+	 * wear the axe (Gabby, 2026-10-20); mining and fighting do, as with any pickaxe.
 	 */
 	public static void serverTick(MinecraftServer server) {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -155,9 +155,6 @@ public final class Gear {
 				continue;
 			}
 			player.resetFallDistance();
-			if (!player.onGround() && !player.isCreative() && Math.floorMod(player.tickCount, Climbing.WEAR_TICKS) == 0) {
-				player.getItemInHand(iceAxeHand(player)).hurtAndBreak(1, player, iceAxeHand(player));
-			}
 		}
 	}
 

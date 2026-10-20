@@ -13,6 +13,7 @@ import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
 import java.nio.file.Files;
 import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.client.CameraType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -307,6 +308,7 @@ final class SummiteerClientTest {
 		});
 
 		rightClick();
+		wornGear();
 
 		drop(0, false);
 		drop(1, true);
@@ -394,6 +396,60 @@ final class SummiteerClientTest {
 			Summiteer.LOGGER.info("[test] right-click: {}", RIGHT_CLICK[0]);
 		}));
 		run(mc -> check(RIGHT_CLICK[0].equals("crampons on, gloves swapped"), "Right-click: gear didn't go on, swapping with what you wore (" + RIGHT_CLICK[0] + ")"));
+	}
+
+	/**
+	 * Worn gear on the player, for judging the look: the camera turns to face the player, who wears
+	 * the goggles, crampons and gloves, first bare-headed and then with the beanie and wool socks
+	 * (the gear should show over them).
+	 */
+	private static void wornGear() {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Gear.ICE_AXE.get()));
+			equip(player, "head", new ItemStack(Gear.SNOW_GOGGLES.get()));
+			equip(player, "feet", new ItemStack(Gear.CRAMPONS.get()));
+			equip(player, "hands", new ItemStack(Clothes.CLIMBING_GLOVES.get()));
+			serverCommand(server, "tp @a " + (SITE_AT[0] - 5.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5) + " 0 0");
+		}));
+		// Facing the player, close up, with the hotbar and chat hidden.
+		int[] fov = new int[1];
+		run(mc -> {
+			fov[0] = mc.options.fov().get();
+			mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+			if (!mc.gui.hud.isHidden()) {
+				mc.gui.hud.toggle();
+			}
+			mc.options.fov().set(45);
+		});
+		waitTicks(20);
+		ClientTest.screenshot();
+		run(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+		waitTicks(10);
+		ClientTest.screenshot();
+		run(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
+		run(mc -> onServer(mc, server -> {
+			player(server).setItemSlot(EquipmentSlot.HEAD, new ItemStack(Clothes.BEANIE.get()));
+			player(server).setItemSlot(EquipmentSlot.FEET, new ItemStack(Clothes.WOOL_SOCKS.get()));
+		}));
+		waitTicks(10);
+		ClientTest.screenshot();
+		run(mc -> {
+			mc.options.setCameraType(CameraType.FIRST_PERSON);
+			if (mc.gui.hud.isHidden()) {
+				mc.gui.hud.toggle();
+			}
+			mc.options.fov().set(fov[0]);
+			onServer(mc, server -> {
+				ServerPlayer player = player(server);
+				player.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+				player.setItemSlot(EquipmentSlot.FEET, ItemStack.EMPTY);
+				player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+				equip(player, "head", ItemStack.EMPTY);
+				equip(player, "feet", ItemStack.EMPTY);
+				equip(player, "hands", ItemStack.EMPTY);
+			});
+		});
 	}
 
 	/** Drops the player from 18 blocks up, against the ice wall; stores how much health the landing cost. */
