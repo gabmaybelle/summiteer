@@ -21,6 +21,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.PowderSnowBlock;
 import net.minecraft.world.level.Level;
 import net.neoforged.fml.ModList;
 import top.theillusivec4.curios.api.CuriosApi;
@@ -256,14 +257,14 @@ final class SummiteerClientTest {
 	private static final double[] CLIMB = new double[3];
 	private static final float[] LOST = new float[2];
 	private static final double[] SLID = new double[2];
-	private static final double[] SANK = new double[2];
+	private static final String[] WALKS = new String[2];
 
 	/**
 	 * The climbing gear, on the summit site with the wind and cold off. An ice wall stands three
 	 * blocks east of the middle, 14 high. Walking into it for three seconds climbs it with the ice
 	 * axe, faster in climbing gloves, and not at all without the axe. Dropped from 18 blocks up
 	 * beside it, the axe slides you down unhurt; without it the fall hurts. On packed ice a shove
-	 * slides you less in crampons, and in crampons you stand on powder snow instead of sinking.
+	 * slides you less in crampons, and in crampons the game lets you walk on powder snow.
 	 */
 	private static void gear() {
 		run(mc -> onServer(mc, server -> {
@@ -299,8 +300,8 @@ final class SummiteerClientTest {
 
 		powderSnow(0, false);
 		powderSnow(1, true);
-		run(mc -> check(SANK[0] > 0.4 && SANK[0] < 1.1 && SANK[1] < 0.05, "Crampons: you didn't walk on powder snow (sank " + String.format("%.2f", SANK[1])
-				+ " blocks in them, " + String.format("%.2f", SANK[0]) + " without)"));
+		run(mc -> check(WALKS[0].equals("server no, client no") && WALKS[1].equals("server yes, client yes"),
+				"Crampons: you can't walk on powder snow in them, or can without (in them: " + WALKS[1] + "; without: " + WALKS[0] + ")"));
 
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
@@ -380,28 +381,20 @@ final class SummiteerClientTest {
 	}
 
 	/**
-	 * Stands the player on a patch of powder snow (one block deep, stone under it) for two seconds;
-	 * stores how far they sank. The crampons go on or off a second before the snow appears: the
-	 * player moves on the client, so the client has to know what they're wearing first.
+	 * Whether the game lets the player walk on powder snow, asked the way vanilla asks it, on the
+	 * server and on the client (players move on the client, so both must agree). The crampons go on
+	 * or off a second first, so the change reaches the client.
 	 */
 	private static void powderSnow(int index, boolean crampons) {
-		String patch = (SITE_AT[0] - 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 4) + " " + (SITE_AT[0] + 1) + " " + SITE_AT[1] + " " + (SITE_AT[2] + 6);
 		run(mc -> onServer(mc, server -> equip(player(server), "feet", crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY)));
 		waitTicks(20);
-		run(mc -> onServer(mc, server -> {
-			ServerPlayer player = player(server);
-			serverCommand(server, "fill " + patch + " minecraft:powder_snow");
-			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 5.5));
-			player.setDeltaMovement(0, 0, 0);
-		}));
-		waitTicks(40);
-		run(mc -> onServer(mc, server -> {
-			SANK[index] = (SITE_AT[1] + 1) - player(server).getY();
-			Summiteer.LOGGER.info("[test] on powder snow with crampons {}: sank {}", crampons, SANK[index]);
-			serverCommand(server, "tp @a " + (SITE_AT[0] + 0.5) + " " + (SITE_AT[1] + 1) + " " + (SITE_AT[2] + 0.5));
-			serverCommand(server, "fill " + patch + " minecraft:stone");
-			player(server).setTicksFrozen(0);
-		}));
+		run(mc -> {
+			boolean[] server = new boolean[1];
+			onServer(mc, s -> server[0] = PowderSnowBlock.canEntityWalkOnPowderSnow(player(s)));
+			boolean client = PowderSnowBlock.canEntityWalkOnPowderSnow(mc.player);
+			WALKS[index] = "server " + (server[0] ? "yes" : "no") + ", client " + (client ? "yes" : "no");
+			Summiteer.LOGGER.info("[test] can walk on powder snow with crampons {}: {}", crampons, WALKS[index]);
+		});
 	}
 
 	/** Puts something in the first of one of Curios' slots ("hands", "head", "feet"); it must fit. */

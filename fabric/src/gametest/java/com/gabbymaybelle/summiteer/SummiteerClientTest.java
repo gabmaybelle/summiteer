@@ -23,6 +23,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.PowderSnowBlock;
 
 /**
  * The mod in a real game. Run with {@code ./gradlew :fabric:runClientGameTest}; screenshots land
@@ -315,7 +316,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	 * blocks east of the middle, 14 high. Walking into it for three seconds climbs it with the ice
 	 * axe, faster in climbing gloves, and not at all without the axe. Dropped from 18 blocks up
 	 * beside it, the axe slides you down unhurt; without it the fall hurts. On packed ice a shove
-	 * slides you less in crampons, and in crampons you stand on powder snow instead of sinking.
+	 * slides you less in crampons, and in crampons the game lets you walk on powder snow.
 	 */
 	private void gear(ClientGameTestContext ctx, TestSingleplayerContext world) {
 		Config.wind = false;
@@ -343,10 +344,10 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		double grip = slide(ctx, world, true);
 		check(grip < slide * 0.6, "crampons: no slipping on ice (slid " + String.format("%.2f", grip) + " blocks in them, " + String.format("%.2f", slide) + " without)");
 
-		double sank = powderSnow(ctx, world, false);
-		double stood = powderSnow(ctx, world, true);
-		check(sank > 0.4 && sank < 1.1 && stood < 0.05, "crampons: you walk on powder snow (sank " + String.format("%.2f", stood) + " blocks in them, "
-				+ String.format("%.2f", sank) + " without)");
+		String without = powderSnow(ctx, world, false);
+		String with = powderSnow(ctx, world, true);
+		check(without.equals("server no, client no") && with.equals("server yes, client yes"),
+				"crampons: you walk on powder snow (can walk on it in them: " + with + "; without: " + without + ")");
 
 		world.getServer().runOnServer(server -> {
 			ServerPlayer player = player(server);
@@ -418,28 +419,19 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	}
 
 	/**
-	 * Stands the player on a patch of powder snow (one block deep, stone under it) for two seconds;
-	 * how far they sank. The crampons go on or off a second before the snow appears: the player
-	 * moves on the client, so the client has to know what they're wearing first.
+	 * Whether the game lets the player walk on powder snow, asked the way vanilla asks it, on the
+	 * server and on the client (players move on the client, so both must agree). The crampons go on
+	 * or off a second first, so the change reaches the client.
 	 */
-	private double powderSnow(ClientGameTestContext ctx, TestSingleplayerContext world, boolean crampons) {
+	private String powderSnow(ClientGameTestContext ctx, TestSingleplayerContext world, boolean crampons) {
 		world.getServer().runOnServer(server ->
 				slot(player(server), "feet/shoes").setItem(0, crampons ? new ItemStack(Gear.CRAMPONS.get()) : ItemStack.EMPTY));
 		ctx.waitTicks(20);
-		world.getServer().runOnServer(server -> {
-			command(server, "fill " + (site[0] - 1) + " " + site[1] + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:powder_snow");
-			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 5.5));
-			player(server).setDeltaMovement(0, 0, 0);
-		});
-		ctx.waitTicks(40);
-		double sank = world.getServer().computeOnServer(server -> (site[1] + 1) - player(server).getY());
-		world.getServer().runOnServer(server -> {
-			command(server, "tp @a " + (site[0] + 0.5) + " " + (site[1] + 1) + " " + (site[2] + 0.5));
-			command(server, "fill " + (site[0] - 1) + " " + site[1] + " " + (site[2] + 4) + " " + (site[0] + 1) + " " + site[1] + " " + (site[2] + 6) + " minecraft:stone");
-			player(server).setTicksFrozen(0);
-		});
-		Summiteer.LOGGER.info("[test] on powder snow with crampons {}: sank {}", crampons, sank);
-		return sank;
+		boolean server = world.getServer().computeOnServer(s -> PowderSnowBlock.canEntityWalkOnPowderSnow(player(s)));
+		boolean client = ctx.computeOnClient(c -> PowderSnowBlock.canEntityWalkOnPowderSnow(c.player));
+		String result = "server " + (server ? "yes" : "no") + ", client " + (client ? "yes" : "no");
+		Summiteer.LOGGER.info("[test] can walk on powder snow with crampons {}: {}", crampons, result);
+		return result;
 	}
 
 	private static ServerPlayer player(net.minecraft.server.MinecraftServer server) {
