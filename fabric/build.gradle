@@ -67,7 +67,8 @@ fabricApi {
 // build/run/clientGameTest/video_tour. Every other -Pvideo... property is passed on to it:
 // -PvideoScenes=<scene,scene,w_*> films only those scenes, -PvideoScout takes one still per scene,
 // -PvideoSeed=<seed> picks the world, -PvideoWorld=<zip> films in a saved world, -PvideoStage
-// saves the staged world. Without -PvideoTour the game test runs as usual.
+// saves the staged world, -PvideoTrailer films the wide trailer (Trailer, frames in video_trailer) instead
+// of the Short. Without -PvideoTour the game test runs as usual.
 if (project.hasProperty("videoTour")) {
 	tasks.matching { it.name == 'runClientGameTest' }.configureEach {
 		systemProperty 'summiteer.videoTour', 'true'

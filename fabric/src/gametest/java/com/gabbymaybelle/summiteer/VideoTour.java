@@ -60,7 +60,8 @@ public class VideoTour implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
-		if (!Film.on(PREFIX)) {
+		// A trailer run (-PvideoTrailer) films only the Trailer.
+		if (!Film.on(PREFIX) || Trailer.on()) {
 			return;
 		}
 		film = new Film(context, PREFIX, "video_tour");
@@ -96,7 +97,7 @@ public class VideoTour implements FabricClientGameTest {
 		film.note("cliff", "foot " + foot.toShortString() + ", wall " + wallDx + "," + wallDz + ", " + wallHeight + " high");
 	}
 
-	private static int[] ints(String s) {
+	static int[] ints(String s) {
 		String[] parts = s.trim().split(" ");
 		int[] out = new int[parts.length];
 		for (int i = 0; i < parts.length; i++) {
@@ -106,13 +107,13 @@ public class VideoTour implements FabricClientGameTest {
 	}
 
 	/** The y a player stands at on this column (the first air above the ground). */
-	private static int standY(ServerLevel level, int x, int z) {
+	static int standY(ServerLevel level, int x, int z) {
 		level.getChunk(x >> 4, z >> 4);
 		return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
 	}
 
 	/** Whether the ice axe grips this block for a player standing at {@code feet}: the mod's own rule. */
-	private static boolean grips(ServerLevel level, BlockPos block, BlockPos feet) {
+	static boolean grips(ServerLevel level, BlockPos block, BlockPos feet) {
 		BlockState state = level.getBlockState(block);
 		boolean snowOrIce = state.is(Gear.ICE_AXE_CLIMBABLE);
 		boolean rock = !snowOrIce && state.is(Gear.ICE_AXE_CLIMBABLE_HIGH);

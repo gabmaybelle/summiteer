@@ -7,7 +7,8 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"com.gabbymaybelle.summiteer.SummiteerClientTest",
-			"com.gabbymaybelle.summiteer.VideoTour"
+			"com.gabbymaybelle.summiteer.VideoTour",
+			"com.gabbymaybelle.summiteer.Trailer"
 		]
 	},
 	"depends": {

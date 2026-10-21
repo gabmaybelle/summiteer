@@ -1,4 +1,4 @@
-"""Copies the game sounds the Short uses out of Loom's asset cache (filled by any game-test run).
+"""Copies the game sounds the videos use out of Loom's asset cache (filled by any game-test run).
 
 python get_sounds.py <out dir>
 The sounds are Mojang's, so they're read from the cache each time rather than kept in the repo.
@@ -11,7 +11,11 @@ assets = os.path.expanduser('~/.gradle/caches/fabric-loom/assets')
 # The gust's whoosh is the elytra's (what the mod plays); the climb is stone steps; the landing snow.
 SOUNDS = {'whoosh': 'item/elytra/elytra_loop',
           'stone1': 'step/stone1', 'stone2': 'step/stone2', 'stone3': 'step/stone3', 'stone4': 'step/stone4',
-          'snow1': 'step/snow1', 'snow2': 'step/snow2', 'snow3': 'step/snow3', 'snow4': 'step/snow4'}
+          'snow1': 'step/snow1', 'snow2': 'step/snow2', 'snow3': 'step/snow3', 'snow4': 'step/snow4',
+          # The trailer's camp: the crafting clicks, each piece going on, the campfire.
+          'click': 'random/click', 'leather1': 'item/armor/equip_leather1', 'leather2': 'item/armor/equip_leather2',
+          'chain1': 'item/armor/equip_chain1', 'crackle1': 'block/campfire/crackle1', 'crackle2': 'block/campfire/crackle2',
+          'crackle3': 'block/campfire/crackle3'}
 objects = {}
 for index in sorted(glob.glob(os.path.join(assets, 'indexes', '*.json'))):
     objects.update(json.load(open(index))['objects'])
