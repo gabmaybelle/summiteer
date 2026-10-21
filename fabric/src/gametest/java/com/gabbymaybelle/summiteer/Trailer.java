@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
-import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import net.minecraft.core.BlockPos;
@@ -41,7 +40,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Films the wide trailer (about 80 s) with {@link Film}: a screenshot every tick in a 1920x1080
+ * Films the wide trailer (about 74 s) with {@link Film}: a screenshot every tick in a 1920x1080
  * window. Only runs with
  * `./gradlew --no-configuration-cache :fabric:runClientGameTest -PvideoTour -PvideoTrailer`;
  * frames go in build/run/clientGameTest/video_trailer. {@link VideoTour} (the Short) skips itself
@@ -52,10 +51,10 @@ import net.minecraft.world.phys.Vec3;
  * the mod's own rules and keeps them: base camp (flat snowy ground below the treeline), the ridge
  * (high ground open to the wind), the cliff (a face the ice axe grips, ten blocks or more, above the
  * treeline) and the peak (summit height, with a walkable last few steps). The scenes, in the
- * trailer's order: the summit view in clear air; at camp, crafting the parka, dyeing it red,
- * putting the clothes and gear on, and the camera turning once round the player; a gust on the
- * ridge and a braced one; climbing the cliff and hanging on sneak; letting go ten blocks up; and
- * the whiteout on the peak, the goggles, and the storm clearing.
+ * trailer's order: the summit view in clear air; at camp, crafting the red parka, then the camera
+ * turning once round the dressed player (dressed off camera by right-clicks, and checked); a gust
+ * on the ridge and a braced one; climbing the cliff and hanging on sneak; climbing to ten blocks up
+ * in third person and letting go; and the whiteout on the peak, the goggles, and the storm clearing.
  *
  * <p>Nothing about the mod's timing or heights is changed: gusts come when the mod sends them, and
  * the whiteout fades in and out through its own fog. Each scene checks its claim with the mod's
@@ -478,8 +477,6 @@ public class Trailer implements FabricClientGameTest {
 		}
 		film.scene("w_open", this::open);
 		film.scene("w_craft", this::craft);
-		film.scene("w_dye", this::dye);
-		film.scene("w_dress", this::dress);
 		film.scene("w_turn", this::turn);
 		film.scene("w_wind", this::wind);
 		film.scene("w_climb", this::climb);
@@ -541,35 +538,10 @@ public class Trailer implements FabricClientGameTest {
 	}
 
 	/**
-	 * At base camp in light snow: the crafting table opened, eight wool laid out in the parka's
-	 * shape a click at a time, the parka taken out. Checks the parka is in the inventory.
+	 * At base camp in light snow, one quick shot: the crafting table opened, a parka and a red dye
+	 * laid in its grid, the red parka taken out. Checks its colour.
 	 */
 	private void craft() {
-		weather(true);
-		ready(0);
-		kit(false, false);
-		film.server.runOnServer(server -> player(server).getInventory().setItem(0, new ItemStack(Items.WOOL.white(), 8)));
-		film.ctx.waitTicks(45);
-		openTable();
-		// The parka's shape: "X X", "XXX", "XXX" in the grid's slots 1-9.
-		click(37, LEFT);
-		for (int slot : new int[] { 1, 3, 4, 5, 6, 7, 8, 9 }) {
-			click(slot, RIGHT);
-		}
-		film.until(mc -> mc.gui.screen() instanceof CraftingScreen s && s.getMenu().getSlot(0).hasItem());
-		film.record(10);
-		click(0, LEFT);
-		film.log("crafted", "parka");
-		click(37, LEFT);
-		film.record(10);
-		closeScreen();
-		int parkas = count(Clothes.PARKA.get());
-		film.log("parkas", Integer.toString(parkas));
-		Film.check(parkas == 1, "crafting eight wool in the parka's shape made a parka (" + parkas + ")");
-	}
-
-	/** At camp: the parka and a red dye in the table's grid, and a red parka out. Checks its colour. */
-	private void dye() {
 		weather(true);
 		ready(0);
 		kit(false, false);
@@ -586,7 +558,7 @@ public class Trailer implements FabricClientGameTest {
 		film.until(mc -> mc.gui.screen() instanceof CraftingScreen s && s.getMenu().getSlot(0).hasItem());
 		film.record(10);
 		click(0, LEFT);
-		film.log("dyed", "parka");
+		film.log("crafted", "red parka");
 		click(37, LEFT);
 		film.record(12);
 		closeScreen();
@@ -600,13 +572,13 @@ public class Trailer implements FabricClientGameTest {
 	}
 
 	/**
-	 * At camp, filmed from in front with the range behind the player: each piece put on with a
-	 * right-click from the hotbar (vanilla's for the clothes, the mod's for the goggles, gloves and
-	 * crampons). Checks each is worn, by the armour slot or the mod's own {@code Gear.wears...}.
+	 * Off camera, before the turn: each piece put on with a right-click from the hotbar the way a
+	 * player would (vanilla's for the clothes, the mod's for the goggles, gloves and crampons), then
+	 * the ice axe in hand. Checks each is worn, by its armour slot or the mod's own
+	 * {@code Gear.wears...}, and that the worn parka is red. Not filmed: the trailer gives base camp
+	 * only eight seconds (Gabby, 2026-10-21), and the turn shows it all on.
 	 */
-	private void dress() {
-		weather(true);
-		ready(4);
+	private void dressOffCamera() {
 		kit(false, false);
 		Supplier<Item>[] pieces = pieces();
 		film.server.runOnServer(server -> {
@@ -616,22 +588,16 @@ public class Trailer implements FabricClientGameTest {
 			}
 			p.getInventory().setItem(8, new ItemStack(Gear.ICE_AXE.get()));
 		});
-		film.ctx.waitTicks(45);
-		film.ctx.runOnClient(mc -> mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
-		// Facing away from the range, so the camera in front sees the player with the range behind.
 		Vec3 at = centre(camp);
-		place(at, at.add(-campDx * 10, 1.8, -campDz * 10));
-		film.rolling();
-		film.record(10);
+		// Looking out over the range, so a right-click hits no block.
+		place(at, at.add(campDx * 10, 3, campDz * 10));
 		for (int i = 0; i < pieces.length; i++) {
 			hotbar(i);
-			film.record(6 + film.jitter.nextInt(4));
+			film.ctx.waitTicks(4);
 			film.ctx.getInput().pressKey(o -> o.keyUse);
-			film.log("put_on", pieces[i].get().toString());
-			film.record(14);
+			film.ctx.waitTicks(6);
 		}
 		hotbar(8);
-		film.record(20);
 		String missing = film.server.computeOnServer(server -> {
 			ServerPlayer p = player(server);
 			StringBuilder out = new StringBuilder();
@@ -648,10 +614,12 @@ public class Trailer implements FabricClientGameTest {
 			DyedItemColor dyed = player(server).getItemBySlot(EquipmentSlot.CHEST).get(DataComponents.DYED_COLOR);
 			return dyed == null ? -1 : dyed.rgb() & 0xFFFFFF;
 		});
-		film.log("worn", missing.isEmpty() ? "all seven" : "missing " + missing);
-		film.log("parka_colour", String.format(Locale.ROOT, "#%06x", colour));
-		Film.check(missing.isEmpty(), "every piece is worn (missing: " + missing + ")");
+		film.note("worn", missing.isEmpty() ? "all seven, by right-click" : "missing " + missing);
+		film.note("parka_colour", String.format(Locale.ROOT, "#%06x", colour));
+		Film.check(missing.isEmpty(), "every piece is worn after a right-click each (missing: " + missing + ")");
 		Film.check(colour == red(), String.format(Locale.ROOT, "the worn parka is red (#%06x)", colour));
+		// The axe's name over the hotbar fades before the turn starts.
+		film.ctx.waitTicks(45);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -661,14 +629,15 @@ public class Trailer implements FabricClientGameTest {
 	}
 
 	/**
-	 * At camp in the full kit: the camera turns once round the player, so every piece shows. The
-	 * player can't film themselves from outside, so the camera rides an invisible armour stand
-	 * (the game's spectate-an-entity view); the player is drawn as anyone else would see them.
+	 * At camp, dressed off camera piece by piece (see {@link #dressOffCamera}): the camera turns
+	 * once round the player, so every piece shows. The player can't film themselves from outside,
+	 * so the camera rides an invisible armour stand (the game's spectate-an-entity view); the
+	 * player is drawn as anyone else would see them.
 	 */
 	private void turn() {
 		weather(true);
 		ready(0);
-		kit(true, true);
+		dressOffCamera();
 		film.hud(false);
 		Vec3 at = centre(camp);
 		place(at, at.add(campDx * 10, 1.6, campDz * 10));
@@ -748,7 +717,8 @@ public class Trailer implements FabricClientGameTest {
 		try {
 			Vec3 braced = pos();
 			waitForGust("braced_gust");
-			film.record(30);
+			// Three seconds held firm after it: room for the cut to fill the ridge's fifteen seconds.
+			film.record(60);
 			double moved = pos().subtract(braced).horizontalDistance();
 			film.log("braced_moved", String.format(Locale.ROOT, "%.2f", moved));
 			Film.check(moved < pushed, "crouching, the gust moves the player less (" + String.format(Locale.ROOT, "%.2f against %.2f", moved, pushed) + ")");
@@ -775,12 +745,8 @@ public class Trailer implements FabricClientGameTest {
 			place(onWall(0), wallPoint(5));
 			double start = pos().y;
 			film.rolling();
-			film.ctx.getInput().holdKey(o -> o.keyUp);
-			try {
-				film.record(60);
-			} finally {
-				film.ctx.getInput().releaseKey(o -> o.keyUp);
-			}
+			// Up to six blocks (less on a short wall), a hang, then on to a block below the top.
+			climbTo(start + Math.min(6, wallHeight - 4), 120);
 			film.ctx.getInput().holdKey(o -> o.keyShift);
 			double hangFrom;
 			double hangTo;
@@ -788,17 +754,12 @@ public class Trailer implements FabricClientGameTest {
 				film.record(4);
 				hangFrom = pos().y;
 				film.log("hang", "");
-				film.record(30);
+				film.record(40);
 				hangTo = pos().y;
 			} finally {
 				film.ctx.getInput().releaseKey(o -> o.keyShift);
 			}
-			film.ctx.getInput().holdKey(o -> o.keyUp);
-			try {
-				film.record(30);
-			} finally {
-				film.ctx.getInput().releaseKey(o -> o.keyUp);
-			}
+			climbTo(start + Math.min(9, wallHeight - 1), 80);
 			double rose = pos().y - start;
 			Zone zone = zone();
 			film.log("climbed", String.format(Locale.ROOT, "%.2f blocks", rose));
@@ -813,10 +774,23 @@ public class Trailer implements FabricClientGameTest {
 		}
 	}
 
+	/** Films the player climbing (forward held) until their feet reach {@code y}, at most {@code frames} frames. */
+	private void climbTo(double y, int frames) {
+		film.ctx.getInput().holdKey(o -> o.keyUp);
+		try {
+			for (int i = 0; i < frames && pos().y < y; i++) {
+				film.record(1);
+			}
+		} finally {
+			film.ctx.getInput().releaseKey(o -> o.keyUp);
+		}
+	}
+
 	/**
-	 * Third person, HUD on so the hearts show: ten blocks up the wall the player lets go and slides
-	 * down it with the axe, landing unhurt. Checks the height, the zone and the health before and
-	 * after. Gusts are off on the wall, as in the climb.
+	 * Third person, HUD on so the hearts show: the player climbs the last six blocks to ten blocks
+	 * up, hangs a moment on sneak, then lets go and slides down the wall with the axe, landing
+	 * unhurt. Checks the height, the zone and the health before and after. Gusts are off on the
+	 * wall, as in the climb.
 	 */
 	private void fall() {
 		weather(true);
@@ -827,22 +801,30 @@ public class Trailer implements FabricClientGameTest {
 		try {
 			film.ctx.waitTicks(25);
 			double up = Math.min(10, wallHeight - 1);
-			place(onWall(up), wallPoint(4));
+			place(onWall(up - 6), wallPoint(up - 2));
 			Zone zone = zone();
 			float before = health();
-			double from = pos().y;
 			film.rolling();
-			film.log("let_go", "");
+			climbTo(foot.getY() + up, 140);
+			film.ctx.getInput().holdKey(o -> o.keyShift);
+			try {
+				film.log("hang", "");
+				film.record(24);
+			} finally {
+				film.ctx.getInput().releaseKey(o -> o.keyShift);
+			}
+			double from = pos().y;
+			film.log("let_go", String.format(Locale.ROOT, "%.2f above the foot", from - foot.getY()));
 			for (int i = 0; i < 200 && !film.server.computeOnServer(server -> player(server).onGround()); i++) {
 				film.record(1);
 			}
 			film.log("landed", "");
-			film.record(25);
+			film.record(60);
 			float after = health();
 			film.log("fell", String.format(Locale.ROOT, "%.2f blocks", from - pos().y));
 			film.log("health", before + " to " + after);
 			film.log("fall_zone", zone.toString());
-			Film.check(from - pos().y >= up - 0.5, "the player slid down from " + up + " blocks up (" + String.format(Locale.ROOT, "%.2f", from - pos().y) + ")");
+			Film.check(from - pos().y >= up - 1, "the player slid down from about " + up + " blocks up (" + String.format(Locale.ROOT, "%.2f", from - pos().y) + ")");
 			Film.check(zone != Zone.LOW, "the fall is above the treeline (" + zone + ")");
 			Film.check(before == after && after == film.server.computeOnServer(server -> player(server).getMaxHealth()),
 					"sliding down the wall with the axe, the landing doesn't hurt (" + before + " to " + after + ")");

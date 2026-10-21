@@ -7,9 +7,12 @@ Makes summiteer-trailer.mp4 (the game's own sounds), summiteer-trailer-silent.mp
 thumbnails (1280x720): the player on the cliff with SUMMITEER, and the summit view with WORTH
 CLIMBING. Music goes on after, with add_music.py.
 
-The order follows the plan: the summit view, then the title card; base camp (crafting, dyeing,
-dressing, the camera turning round the player); the wind on the ridge; the climb and the fall on
-the cliff; the whiteout on the peak and the view clearing; the end card. Captions sit in the
+The order and timings follow the plan (Gabby, 2026-10-21; SECTIONS below, about 74 s): the summit
+view, then the title card; base camp (one quick shot of crafting the red parka, then the camera
+turning round the dressed player); the wind on the ridge; the climb and the fall on the cliff; the
+whiteout on the peak and the view clearing; the end card. Each section is fitted to its time by
+starting a cut earlier or playing one faster (never slower than real time, at most 3x); the
+report at the end shows any section still off the plan. Captions sit in the
 lower third: bold white capitals with a black outline straight on the footage, one word in the
 goggles' amber. Each cut comes from the moments Trailer logs (the clicks, the gusts, the landing,
 the whiteout), so a new take needs no new numbers here. If a scene changes in Trailer, change it
@@ -29,7 +32,6 @@ NAME = 'summiteer-trailer'
 SIZE, STROKE = 76, 7
 CAPTION_Y = 770          # the caption's top: lower third, above the hearts and hotbar (GUI scale 3)
 BADGE_BOX = (36, 32, 436, 112)
-TITLE_FRAMES, END_FRAMES = 44, 160   # 2.2 s and 8 s
 FADE_IN = 5
 
 with open(os.path.join(frames_dir, 'actions.tsv')) as f:
@@ -73,53 +75,91 @@ CAPTIONS = {
 
 
 def segments():
+    """The cut, section by section, each fitted to the plan's timings (see SECTIONS)."""
     segs = []
+    # 1. The summit view, the title card follows it.
     n = count('w_open')
     if n:
-        segs.append(('w_open', max(0, n - 84), n, 1, None))
-    # Camp: quick cuts of the crafting and the dyeing, the pieces going on, then the turn.
-    clicks = every('w_craft', 'click') + every('w_craft', 'right_click')
+        segs.append(seg('open', 'w_open', max(0, n - 60), n, grow=True))
+    # 2. Base camp: one quick shot of crafting the red parka, then the turn round the dressed player.
     if count('w_craft'):
         start = first(at('w_craft', 'table'), 0)
         end = first(at('w_craft', 'crafted'), count('w_craft'))
-        segs.append(('w_craft', max(0, start - 6), end + 14, 2, 'gear'))
-    if count('w_dye'):
-        start = first(at('w_dye', 'click'), 0)
-        end = first(at('w_dye', 'dyed'), count('w_dye'))
-        segs.append(('w_dye', max(0, start - 4), end + 14, 2, 'gear'))
-    on = every('w_dress', 'put_on')
-    if on:
-        segs.append(('w_dress', max(0, on[0] - 8), on[-1] + 16, 1.5, 'gear'))
-    elif count('w_dress'):
-        segs.append(('w_dress', 0, count('w_dress'), 1.5, 'gear'))
+        segs.append(seg('gear', 'w_craft', max(0, start - 4), end + 14, speed=1.5, key='gear'))
     if count('w_turn'):
-        segs.append(('w_turn', 0, count('w_turn'), 1.5, 'gear'))
-    # The ridge: the first gust from its warning to just after it lands, then the braced one.
+        segs.append(seg('gear', 'w_turn', 0, count('w_turn'), key='gear', fit=True))
+    # 3. The ridge: the first gust from before its warning to after it lands, then the braced one.
     warn, hit = at('w_wind', 'gust_warning'), at('w_wind', 'gust')
     bwarn, braced = at('w_wind', 'braced_gust_warning'), at('w_wind', 'braced_gust')
     if warn is not None and hit is not None:
-        segs.append(('w_wind', max(0, warn - 12), hit + 30, 1, 'wind'))
+        segs.append(seg('wind', 'w_wind', max(0, warn - 12), hit + 40, key='wind', grow=True))
     if braced is not None:
-        segs.append(('w_wind', max(0, first(bwarn, braced - 40) - 6), braced + 26, 1, 'wind'))
+        segs.append(seg('wind', 'w_wind', max(0, first(bwarn, braced - 40) - 10), braced + 40, key='wind', tail=True))
     if warn is None and braced is None and count('w_wind'):
-        segs.append(('w_wind', 0, count('w_wind'), 1, 'wind'))
+        segs.append(seg('wind', 'w_wind', 0, count('w_wind'), key='wind', fit=True))
+    # 4. The cliff: the climb and the hang (first person), then up to ten blocks, the hang and the fall.
     if count('w_climb'):
-        segs.append(('w_climb', 0, count('w_climb'), 1, 'climb'))
+        segs.append(seg('cliff', 'w_climb', 0, count('w_climb'), key='climb', fit=True))
     if count('w_fall'):
         landed = at('w_fall', 'landed')
-        segs.append(('w_fall', 0, (landed + 24) if landed is not None else count('w_fall'), 1, 'fall'))
-    # The peak: the last steps, the whiteout and the goggles, the storm clearing (quicker), the view.
+        segs.append(seg('cliff', 'w_fall', 0, (landed + 24) if landed is not None else count('w_fall'), key='fall', tail=True))
+    # 5. The peak: the last steps, the whiteout and the goggles, the storm clearing (quicker), the view.
     n = count('w_summit')
     if n:
         top, clear, gone = at('w_summit', 'on_top'), at('w_summit', 'clear'), at('w_summit', 'fog_gone')
         start = max(0, top - 50) if top is not None else 0
         if clear is not None and gone is not None:
-            segs.append(('w_summit', start, clear, 1, 'top'))
-            segs.append(('w_summit', clear, gone, 2, 'top'))
-            segs.append(('w_summit', gone, n, 1, 'worth'))
+            segs.append(seg('summit', 'w_summit', start, clear, key='top', grow=True))
+            segs.append(seg('summit', 'w_summit', clear, gone, speed=2, key='top', fit=True))
+            segs.append(seg('summit', 'w_summit', gone, n, key='worth', tail=True))
         else:
-            segs.append(('w_summit', start, n, 1, 'top'))
+            segs.append(seg('summit', 'w_summit', start, n, key='top', fit=True))
+    for section in SECTIONS:
+        fit_section(segs, section)
     return segs
+
+
+# The plan's timings (Gabby, 2026-10-21): seconds per section, cards included. About 74 s in all.
+SECTIONS = {'open': 6, 'gear': 8, 'wind': 15, 'cliff': 20, 'summit': 17, 'end': 8}
+TITLE_FRAMES, END_FRAMES = 44, SECTIONS['end'] * FPS
+MAX_SPEED = 3
+
+
+def seg(section, scene, start, end, speed=1.0, key=None, grow=False, tail=False, fit=False):
+    """One cut: `grow` lets its start move earlier to fill its section, `tail` its end later, and
+    `fit` lets it speed up to fit."""
+    return {'section': section, 'scene': scene, 'start': start, 'end': min(end, count(scene)), 'speed': speed,
+            'key': key, 'grow': grow, 'tail': tail, 'fit': fit}
+
+
+def frames_of(s):
+    return max(0, int((s['end'] - s['start']) / s['speed'] + 0.999))
+
+
+def fit_section(segs, section):
+    """Moves a growable cut's start earlier (then a tail cut's end later) when the section is short,
+    and speeds a fittable cut up (never above MAX_SPEED, never slower than real time) when it is long."""
+    mine = [s for s in segs if s['section'] == section]
+    if not mine:
+        return
+    target = SECTIONS[section] * FPS - (TITLE_FRAMES if section == 'open' else 0)
+    short = target - sum(frames_of(s) for s in mine)
+    for s in mine:
+        if short > 0 and s['grow']:
+            move = min(short * s['speed'], s['start'])
+            s['start'] -= int(move)
+            short -= int(move / s['speed'])
+    for s in mine:
+        if short > 0 and s['tail']:
+            move = min(short * s['speed'], count(s['scene']) - s['end'])
+            s['end'] += int(move)
+            short -= int(move / s['speed'])
+    for s in mine:
+        if short < 0 and s['fit']:
+            others = sum(frames_of(o) for o in mine if o is not s)
+            room = max(1, target - others)
+            s['speed'] = min(MAX_SPEED, max(s['speed'], (s['end'] - s['start']) / room))
+            short = target - sum(frames_of(o) for o in mine)
 
 
 # ------------------------------------------------------------------ drawing
@@ -215,17 +255,14 @@ def end_card(path):
     d = ImageDraw.Draw(img)
     side, gap, name = 150, 28, font(FONTS, 104)
     left = (W - side - gap - d.textlength('SUMMITEER', font=name)) / 2
-    img.alpha_composite(ICON.resize((side, side), Image.NEAREST), (int(left), 110))
-    outlined(d, (left + side + gap, 140), 'SUMMITEER', name, 8, anchor_centre=False)
-    y = 345
+    img.alpha_composite(ICON.resize((side, side), Image.NEAREST), (int(left), 150))
+    outlined(d, (left + side + gap, 180), 'SUMMITEER', name, 8, anchor_centre=False)
+    y = 395
     text = font(TEXT_FONTS, 46)
     for line, colour in END_LINES:
         d.text(((W - d.textlength(line, font=text)) / 2, y), line, font=text, fill=colour)
         y += 70
     outlined(d, (W / 2, y + 50), 'SEARCH *SUMMITEER* ON CURSEFORGE', font(FONTS, 66), 6)
-    soon = 'Coming next: ropes, trail cairns, tents and mountain temples.'
-    small = font(TEXT_FONTS, 34)
-    d.text(((W - d.textlength(soon, font=small)) / 2, 960), soon, font=small, fill=(165, 165, 175))
     return img
 
 
@@ -257,7 +294,8 @@ if not segs:
     sys.exit('no trailer frames in ' + frames_dir)
 open_names = names('w_open')
 shown_caption, since = None, 0
-for idx, (scene, start, end, speed, key) in enumerate(segs):
+for s in segs:
+    scene, start, end, speed, key = s['scene'], s['start'], s['end'], s['speed'], s['key']
     files = names(scene)
     picks, f = [], float(max(0, start))
     while f < min(end, len(files)):
@@ -279,7 +317,7 @@ for idx, (scene, start, end, speed, key) in enumerate(segs):
         kept.append((scene, n))
     if scene == 'w_open':
         card('title', title_card(os.path.join(frames_dir, open_names[-1])), TITLE_FRAMES)
-last = names(segs[-1][0])[-1]
+last = names(segs[-1]['scene'])[-1]
 card('end', end_card(os.path.join(frames_dir, last)), END_FRAMES)
 total = len(kept) / FPS
 
@@ -288,8 +326,7 @@ run('ffmpeg', '-y', '-framerate', str(FPS), '-i', os.path.join(work, '%05d.png')
     '-vf', 'format=yuv420p', '-r', '30', '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-movflags', '+faststart', silent)
 
 # ------------------------------------------------------------------ the sound
-# The game's own sounds where they happen: clicks at the table, the armour sound for each piece,
-# the campfire under the camp, the gust's whoosh at each warning, stone while climbing and
+# The game's own sounds where they happen: clicks at the table, the campfire under the camp, the gust's whoosh at each warning, stone while climbing and
 # sliding, snow underfoot on the peak and at the landing.
 random.seed(7)
 where = {}
@@ -314,14 +351,11 @@ def cue(t, sound, pitch=1.0, volume=0.8, length=None):
         cues.append((t, sound, pitch, volume, length))
 
 
-for scene in ('w_craft', 'w_dye'):
+for scene in ('w_craft',):
     for kind in ('click', 'right_click'):
         for f in every(scene, kind):
             cue(cue_at(scene, f, 1), 'click', 1.0 + random.random() * 0.1, 0.35)
-# Each piece: leather for the clothes, goggles and gloves, chain for the crampons (as the mod plays them).
-for i, f in enumerate(every('w_dress', 'put_on')):
-    cue(cue_at('w_dress', f, 1), 'chain1' if i == 6 else random.choice(['leather1', 'leather2']), 1.0, 0.8)
-camp = [i for i, (s, _) in enumerate(kept) if s in ('w_craft', 'w_dye', 'w_dress', 'w_turn')]
+camp = [i for i, (s, _) in enumerate(kept) if s in ('w_craft', 'w_turn')]
 for i in camp[::12]:
     cue(i / FPS, random.choice(['crackle1', 'crackle2', 'crackle3']), 0.95 + random.random() * 0.1, 0.35)
 for kind in ('gust_warning', 'braced_gust_warning'):
@@ -405,11 +439,11 @@ if fall:
 if open_names:
     thumbnail(os.path.join(frames_dir, open_names[len(open_names) * 2 // 3]), [('*WORTH CLIMBING*', 104)], NAME + '-thumbnail-summit.png')
 
-print('total seconds', round(total, 2))
-order = []
-for scene, _ in kept:
-    if scene not in order:
-        order.append(scene)
-for scene in order:
-    n = sum(1 for s, _ in kept if s == scene)
-    print(f'  {scene}: {n / FPS:.2f} s')
+print('total seconds', round(total, 2), '(plan: about %d)' % sum(SECTIONS.values()))
+# Each section against the plan's timings, so a take that runs short or long shows here.
+section_of = {s['scene']: s['section'] for s in segs}
+section_of.update({'title': 'open', 'end': 'end'})
+for section, target in SECTIONS.items():
+    got = sum(1 for scene, _ in kept if section_of.get(scene) == section) / FPS
+    flag = '' if abs(got - target) <= 1.5 else '   <- off the plan by %+.1f s' % (got - target)
+    print(f'  {section}: {got:.2f} s (plan {target}){flag}')
