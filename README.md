@@ -2,6 +2,8 @@
 
 A Fabric and NeoForge mod for Minecraft 26.3. **Mountains worth climbing.**
 
+**Download:** [CurseForge](https://www.curseforge.com/minecraft/mc-mods/summiteer) · [GitHub releases](https://github.com/gabmaybelle/summiteer/releases) · **Watch:** [the Short](https://youtube.com/shorts/cKlttX2ZECA)
+
 Minecraft's mountains are the biggest landscapes in the game, and they give you nothing to do.
 Summiteer changes that. Climb above the treeline and the weather fights back. Gear up like a real
 mountaineer, then take on the temples at the top of the ranges.
