@@ -65,12 +65,13 @@ def first(*values):
 # Each segment: (scene, first frame, end frame, speed, caption key). Speed 2 keeps every other
 # frame (a quick cut); the caption fades in when its key changes and stays across segments.
 
+# Gabby's pick (2026-10-21): half plain, half climbers' jokes that still read for anyone.
 CAPTIONS = {
-    'gear': 'GEAR UP LIKE A *MOUNTAINEER*',
-    'wind': 'THE WIND *FIGHTS BACK*',
-    'climb': 'THE ICE AXE *CLIMBS*',
-    'fall': 'FALL? *HOLD ON*',
-    'top': 'WHITEOUTS AT THE *TOP*',
+    'gear': 'WOOL *ONLY*',
+    'wind': 'STAY *LOW*',
+    'climb': 'FREE *SOLO*',
+    'fall': 'TRUST THE *AXE*',
+    'top': 'FALSE *SUMMIT*?',
     'worth': 'MOUNTAINS *WORTH CLIMBING*',
 }
 
