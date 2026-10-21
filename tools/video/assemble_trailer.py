@@ -19,6 +19,7 @@ the whiteout), so a new take needs no new numbers here. If a scene changes in Tr
 here too.
 """
 import array, csv, os, random, shutil, subprocess, sys, wave
+from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 frames_dir, sounds_dir, out = sys.argv[1:4]
@@ -277,15 +278,17 @@ os.makedirs(work)
 kept = []
 
 
-def save(img):
-    img.convert('RGB').save(os.path.join(work, '%05d.png' % len(kept)))
+# Frames are listed first, then drawn in a thread pool: Pillow lets go of Python's lock while it
+# decodes, resizes and encodes, so threads draw several at once (Cozy Core's showcase, 2026-10-21:
+# one at a time took about 25 minutes for 1,800 frames). The in-between PNGs are saved with light
+# compression: ffmpeg reads each once, then they are deleted.
+jobs = []   # (output index, source path or card image, badge?, caption key or None, fade 0-1)
+CAPTION_LAYERS = {key: caption(line) for key, line in CAPTIONS.items()}
 
 
 def card(name, img, n):
     for i in range(n):
-        a = min(1.0, (i + 1) / 8)
-        frame = Image.alpha_composite(Image.new('RGBA', (W, H), (0, 0, 0, 255)), faded(img, a)) if a < 1 else img
-        save(frame)
+        jobs.append((len(kept), img, False, None, min(1.0, (i + 1) / 8)))
         kept.append((name, i))
 
 
@@ -301,25 +304,39 @@ for s in segs:
     while f < min(end, len(files)):
         picks.append(int(f))
         f += speed
-    cap = caption(CAPTIONS[key]) if key else None
     if key != shown_caption:
         shown_caption, since = key, 0
     for n in picks:
-        img = Image.open(os.path.join(frames_dir, files[n])).convert('RGBA')
-        if img.size != (W, H):
-            img = img.resize((W, H), Image.LANCZOS)
-        if scene != 'w_open':
-            img.alpha_composite(BADGE)
-        if cap is not None:
-            img.alpha_composite(faded(cap, min(1.0, (since + 1) / FADE_IN)))
+        jobs.append((len(kept), os.path.join(frames_dir, files[n]), scene != 'w_open', key, min(1.0, (since + 1) / FADE_IN)))
         since += 1
-        save(img)
         kept.append((scene, n))
     if scene == 'w_open':
         card('title', title_card(os.path.join(frames_dir, open_names[-1])), TITLE_FRAMES)
 last = names(segs[-1]['scene'])[-1]
 card('end', end_card(os.path.join(frames_dir, last)), END_FRAMES)
 total = len(kept) / FPS
+BLACK = Image.new('RGBA', (W, H), (0, 0, 0, 255))
+
+
+def draw(job):
+    index, source, badged, key, fade = job
+    if isinstance(source, str):
+        img = Image.open(source).convert('RGBA')
+        if img.size != (W, H):
+            img = img.resize((W, H), Image.LANCZOS)
+        if badged:
+            img.alpha_composite(BADGE)
+        if key is not None:
+            img.alpha_composite(faded(CAPTION_LAYERS[key], fade))
+    else:
+        # A card fades in from black.
+        img = Image.alpha_composite(BLACK, faded(source, fade)) if fade < 1 else source
+    img.convert('RGB').save(os.path.join(work, '%05d.png' % index), compress_level=1)
+
+
+with ThreadPoolExecutor(os.cpu_count() or 4) as pool:
+    for _ in pool.map(draw, jobs):
+        pass
 
 silent = os.path.join(out, NAME + '-silent.mp4')
 run('ffmpeg', '-y', '-framerate', str(FPS), '-i', os.path.join(work, '%05d.png'),

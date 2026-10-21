@@ -24,14 +24,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
@@ -105,7 +103,11 @@ public class Trailer implements FabricClientGameTest {
 		int[] top = film.server.computeOnServer(s -> findSummit(s.overworld(), PEAK_X, PEAK_Z, 24));
 		Film.check(top != null, "a summit-height peak with a walkable last few steps near " + PEAK_X + " " + PEAK_Z);
 		film.keep("peak", join(top));
-		int[] cliff = film.server.computeOnServer(s -> findCliff(s.overworld(), top[0], top[2], 96, 10));
+		int[] cliff = film.server.computeOnServer(s -> {
+			// Near the peak most rock is at summit height already: look further out if need be.
+			int[] near = findCliff(s.overworld(), top[0], top[2], 96, 10);
+			return near != null ? near : findCliff(s.overworld(), top[0], top[2], 180, 10);
+		});
 		Film.check(cliff != null, "a cliff the ice axe grips, 10 blocks or more, above the treeline near the peak");
 		film.keep("cliff", join(cliff));
 		int[] open = film.server.computeOnServer(s -> findRidge(s.overworld(), top[0], top[2], 120));
@@ -225,7 +227,10 @@ public class Trailer implements FabricClientGameTest {
 					while (h < 40 && VideoTour.grips(level, new BlockPos(wx, fy + h, wz), feet)) {
 						h++;
 					}
-					if (h < minHeight) {
+					// The climbed part (the fall starts ten up) stays below summit height, so falling
+					// snow there is no whiteout: in the first scout the cliff's foot was already at
+					// summit height and both wall scenes were white (2026-10-21).
+					if (h < minHeight || Zones.at(level, feet.above(Math.min(h, 12))) == Zone.SUMMIT) {
 						continue;
 					}
 					boolean open = true;
@@ -405,7 +410,11 @@ public class Trailer implements FabricClientGameTest {
 			p.getFoodData().setFoodLevel(20);
 			p.setTicksFrozen(0);
 		});
+		// The first hotbar slot in hand from the client too: setting it on the server alone left an
+		// earlier scene's slot 9 selected, and the climbs ran without the axe (second scout, 2026-10-21).
+		hotbar(0);
 		film.ctx.waitTicks(45);
+		Film.check(film.ctx.computeOnClient(mc -> mc.player.getInventory().getSelectedSlot() == 0), "the first hotbar slot is in hand");
 	}
 
 	/** Survival, HUD on, third person ({@code distance} behind) or first person (0). No auto-jump. */
@@ -589,8 +598,11 @@ public class Trailer implements FabricClientGameTest {
 			p.getInventory().setItem(8, new ItemStack(Gear.ICE_AXE.get()));
 		});
 		Vec3 at = centre(camp);
-		// Looking out over the range, so a right-click hits no block.
-		place(at, at.add(campDx * 10, 3, campDz * 10));
+		// Looking up and away from the range and the crafting table, so a right-click hits no block
+		// (in the scout it opened the table, which stood a block higher, and nothing went on).
+		place(at, at.add(-campDx * 10, 8, -campDz * 10));
+		Film.check(film.ctx.computeOnClient(mc -> mc.hitResult == null || mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.MISS),
+				"the player looks at no block before dressing (a right-click would use it)");
 		for (int i = 0; i < pieces.length; i++) {
 			hotbar(i);
 			film.ctx.waitTicks(4);
@@ -630,63 +642,41 @@ public class Trailer implements FabricClientGameTest {
 
 	/**
 	 * At camp, dressed off camera piece by piece (see {@link #dressOffCamera}): the camera turns
-	 * once round the player, so every piece shows. The player can't film themselves from outside,
-	 * so the camera rides an invisible armour stand (the game's spectate-an-entity view); the
-	 * player is drawn as anyone else would see them.
+	 * once round the player, so every piece shows. It is the game's own third-person camera: only
+	 * the view turns, a little each frame, while the body and head are held facing the range, so
+	 * the camera circles a player who stands still. (Riding an invisible armour stand instead showed
+	 * no player at all in 26.3, in first or third person: the second and third scouts, 2026-10-21.)
 	 */
 	private void turn() {
 		weather(true);
 		ready(0);
 		dressOffCamera();
 		film.hud(false);
+		film.thirdPerson(true, 4.5);
 		Vec3 at = centre(camp);
 		place(at, at.add(campDx * 10, 1.6, campDz * 10));
-		int stand = film.server.computeOnServer(server -> {
-			ArmorStand s = new ArmorStand(EntityTypes.ARMOR_STAND, server.overworld());
-			s.setInvisible(true);
-			s.setNoGravity(true);
-			s.setPermanentlyInvulnerable(true);
-			s.snapTo(at.x, at.y + 6, at.z, 0, 0);
-			server.overworld().addFreshEntity(s);
-			return s.getId();
-		});
-		film.ctx.waitFor(mc -> mc.level.getEntity(stand) != null, 100);
+		float body = (float) Math.toDegrees(Math.atan2(-campDx, campDz));
 		Vec3 chest = at.add(0, 1.1, 0);
-		double start = Math.toDegrees(Math.atan2(-campDz, -campDx));
-		try {
-			film.ctx.runOnClient(mc -> mc.setCameraEntity(mc.level.getEntity(stand)));
-			for (int i = 0; i < 140; i++) {
-				double a = Math.toRadians(start + 360 * Film.ease(i / 139.0));
-				Vec3 eye = at.add(Math.cos(a) * 3.6, 1.9, Math.sin(a) * 3.6);
-				film.ctx.runOnClient(mc -> aimStand(mc.level.getEntity(stand), eye, chest));
-				film.record(1);
-			}
-		} finally {
-			film.ctx.runOnClient(mc -> mc.setCameraEntity(mc.player));
-			film.server.runOnServer(server -> {
-				Entity s = server.overworld().getEntity(stand);
-				if (s != null) {
-					s.discard();
-				}
+		// The camera stays in third person after the turn (the next scene sets its own), so a scout's
+		// closing still shows the turn's last frame.
+		for (int i = 0; i < 140; i++) {
+			// The view starts facing the range (camera behind the player) and turns once round.
+			float view = body + 360f * (float) Film.ease(i / 139.0);
+			film.ctx.runOnClient(mc -> {
+				var p = mc.player;
+				p.setYRot(view);
+				p.yRotO = view;
+				p.setXRot(18);
+				p.xRotO = 18;
+				p.yBodyRot = p.yBodyRotO = body;
+				p.yHeadRot = p.yHeadRotO = body;
 			});
+			film.record(1);
 		}
+		double off = film.ctx.computeOnClient(mc -> mc.gameRenderer.mainCamera().position().distanceTo(chest));
+		film.log("turn_camera", String.format(Locale.ROOT, "%.1f blocks from the chest", off));
+		Film.check(off < 6, "the turn's camera circles the player (" + String.format(Locale.ROOT, "%.1f", off) + " blocks away)");
 		film.log("turned", "360");
-	}
-
-	/** Puts the camera stand's eye at {@code eye}, looking at {@code look}, with nothing to blend from. */
-	private static void aimStand(Entity stand, Vec3 eye, Vec3 look) {
-		double x = eye.x, y = eye.y - stand.getEyeHeight(), z = eye.z;
-		double dx = look.x - eye.x, dy = look.y - eye.y, dz = look.z - eye.z;
-		float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
-		float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
-		stand.setPos(x, y, z);
-		stand.xo = stand.xOld = x;
-		stand.yo = stand.yOld = y;
-		stand.zo = stand.zOld = z;
-		stand.setYRot(yaw);
-		stand.setXRot(pitch);
-		stand.yRotO = yaw;
-		stand.xRotO = pitch;
 	}
 
 	/**
@@ -941,7 +931,11 @@ public class Trailer implements FabricClientGameTest {
 			film.ctx.getInput().setCursorPos(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t);
 			film.record(1);
 		}
-		film.ctx.getInput().pressMouse(button);
+		// The click itself goes through the game's own container click (what a mouse click sends):
+		// the test's simulated mouse presses moved the cursor but picked nothing up in the scout
+		// (2026-10-21), with the game window in the background.
+		film.ctx.runOnClient(mc -> mc.gameMode.handleContainerInput(((CraftingScreen) mc.gui.screen()).getMenu().containerId, slot,
+				button, ContainerInput.PICKUP, mc.player));
 		film.log(button == LEFT ? "click" : "right_click", Integer.toString(slot));
 		film.record(2 + film.jitter.nextInt(3));
 	}
