@@ -13,7 +13,7 @@ goggles' amber (it reads against snow). A small Summiteer badge stays in one pla
 through. Each scene's cut comes from the moments VideoTour logs (the gusts, the landing, the top),
 so a new take needs no new numbers here. If a scene changes in VideoTour, change it here too.
 """
-import csv, os, random, shutil, subprocess, sys
+import array, csv, os, random, shutil, subprocess, sys, wave
 from PIL import Image, ImageDraw, ImageFont
 
 frames_dir, sounds_dir, out = sys.argv[1:4]
@@ -197,17 +197,43 @@ for (s, n), i in where.items():
         cues.append((i / FPS, random.choice(['snow1', 'snow3', 'snow4']), 0.9 + random.random() * 0.2, 0.6, None))
 cues.sort()
 
-inputs, filters = [], []
-for i, (t, sound, pitch, volume, length) in enumerate(cues):
-    inputs += ['-i', os.path.join(sounds_dir, sound + '.ogg')]
-    ms = int(t * 1000)
-    trim = f'atrim=0:{length},afade=t=out:st={length - 0.6}:d=0.6,' if length else ''
-    filters.append(f'[{i}:a]aformat=sample_rates=44100:channel_layouts=stereo,{trim}asetrate={44100 * pitch:.0f},aresample=44100,'
-                   f'volume={volume},adelay={ms}|{ms}[s{i}]')
-mix = ''.join(f'[s{i}]' for i in range(len(cues)))
-filters.append(f'{mix}amix=inputs={len(cues)}:normalize=0,apad,atrim=0:{total:.3f}[a]')
 audio = os.path.join(work, 'sound.wav')
-run('ffmpeg', '-y', *inputs, '-filter_complex', ';'.join(filters), '-map', '[a]', audio)
+# The mix is laid down here in Python, not in one big ffmpeg graph: ffmpeg 9 stalled for good
+# partway through the trailer's many-cue amix (2026-10-21). ffmpeg only decodes each sound once.
+RATE = 44100
+decoded = {}
+
+
+def pcm(sound):
+    """A sound as 16-bit stereo samples at 44.1 kHz (left, right, left, ...)."""
+    if sound not in decoded:
+        raw = subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-i', os.path.join(sounds_dir, sound + '.ogg'),
+                              '-f', 's16le', '-ac', '2', '-ar', str(RATE), '-'], check=True, capture_output=True, timeout=60).stdout
+        decoded[sound] = array.array('h', raw)
+    return decoded[sound]
+
+
+length_frames = int(round(total * RATE))
+mix = array.array('f', bytes(4 * 2 * length_frames))
+for t, sound, pitch, volume, length in cues:
+    src = pcm(sound)
+    frames = len(src) // 2
+    if length:
+        frames = min(frames, int(length * RATE))
+    fade = int(0.6 * RATE) if length else 0
+    # Played faster for a higher pitch: output frame i reads source frame i * pitch.
+    at0 = int(t * RATE)
+    for i in range(min(int(frames / pitch), length_frames - at0)):
+        j = int(i * pitch)
+        gain = volume * (min(1.0, (frames - j) / fade) if fade else 1.0)
+        k = 2 * (at0 + i)
+        mix[k] += src[2 * j] * gain
+        mix[k + 1] += src[2 * j + 1] * gain
+with wave.open(audio, 'wb') as w:
+    w.setnchannels(2)
+    w.setsampwidth(2)
+    w.setframerate(RATE)
+    w.writeframes(array.array('h', (max(-32768, min(32767, int(v))) for v in mix)).tobytes())
 run('ffmpeg', '-y', '-i', silent, '-i', audio, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k',
     '-shortest', '-movflags', '+faststart', os.path.join(out, NAME + '.mp4'))
 

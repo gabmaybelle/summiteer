@@ -254,7 +254,12 @@ public class VideoTour implements FabricClientGameTest {
 			p.getFoodData().setFoodLevel(20);
 			p.setTicksFrozen(0);
 		});
+		// The first hotbar slot in hand from the client too: the server setting alone doesn't move
+		// the client's choice (the trailer's climbs once ran without the axe that way, 2026-10-21).
+		film.ctx.getInput().pressKey(o -> o.keyHotbarSlots[0]);
 		film.ctx.waitTicks(45);
+		Film.check(film.ctx.computeOnClient(mc -> mc.player.getInventory().getSelectedSlot() == 0
+				&& mc.player.getMainHandItem().is(Gear.ICE_AXE.get())), "the ice axe is in hand");
 	}
 
 	/** Survival, HUD on, third person from six blocks behind, the kit on. */
