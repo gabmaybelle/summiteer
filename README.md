@@ -18,13 +18,20 @@ mountaineer, then take on the temples at the top of the ranges.
 - **Climbing gear.** An ice axe for climbing snow, ice and high rock (and sliding down safely if you
   fall), crampons for ice and powder snow, and snow goggles to see through a whiteout. Right-click
   to wear them; they show on your character.
+- **Ropes and anchors.** Set an anchor at a cliff edge and the rope unrolls to the ground, up to
+  32 blocks. Climb it like a ladder, then reel it back in. Works on any cliff, ravine or build.
+- **Trail cairns.** Mark your route on the way up. Each gives off a little light, and in a whiteout
+  it chimes softly so you can follow the sound back down.
+- **A base camp tent.** A bed you can carry, in every wool colour: set your respawn, sleep through
+  the night, then pack it up.
+- **The wind takes your pearls.** Up high, a thrown ender pearl drifts downwind, so you climb
+  instead of pearling past the hard part.
 
 See the [changelog](CHANGELOG.md) for the details.
 
 ## What's coming
 
-Ropes and anchors, trail cairns that chime to guide you through a whiteout, and a base camp tent to respawn at. Then
-three mountain temples with a boss each: the Stone shrine on stony peaks, the Frost shrine on frozen
+Three mountain temples with a boss each: the Stone shrine on stony peaks, the Frost shrine on frozen
 peaks, and the Summit shrine on the tallest peak of a range. Ring a shrine's bell to wake its
 guardian; each one has a simple rule to learn and guards the key to the next. Avalanches later.
 
