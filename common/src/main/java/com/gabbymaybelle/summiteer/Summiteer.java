@@ -3,6 +3,7 @@ package com.gabbymaybelle.summiteer;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.platform.Services;
+import com.gabbymaybelle.summiteer.rope.Ropes;
 import com.gabbymaybelle.summiteer.weather.Weather;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -25,6 +26,7 @@ public final class Summiteer {
 		Config.load();
 		Clothes.init();
 		Gear.init();
+		Ropes.init();
 		LOGGER.info("Summiteer: ready on {} (high ground from {} blocks above sea level, summits from {})",
 				Services.PLATFORM.name(), Config.highAboveSeaLevel, Config.summitAboveSeaLevel);
 	}

@@ -50,4 +50,12 @@ class ClimbingTest {
 		assertTrue(Climbing.climbVelocity(true) < LADDER);
 		assertTrue(Climbing.risePerTick(Climbing.climbVelocity(false)) > 0, "the bare axe still climbs");
 	}
+
+	@Test
+	void ropeInGlovesBeatsALadder() {
+		// Vanilla's ladder: 0.2 a tick, less gravity, times the drag: about 2.35 a second.
+		double ladder = Climbing.risePerTick(LADDER) * 20;
+		assertEquals(Climbing.LADDER_BLOCKS_PER_SECOND, ladder, 0.01);
+		assertEquals(ladder * 1.6, Climbing.risePerTick(Climbing.ropeGlovesVelocity()) * 20, 0.02);
+	}
 }

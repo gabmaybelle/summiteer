@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "facing=north,knot=false,top=false": {
+      "model": "summiteer:block/rope"
+    },
+    "facing=north,knot=false,top=true": {
+      "model": "summiteer:block/rope_top"
+    },
+    "facing=north,knot=true,top=false": {
+      "model": "summiteer:block/rope_knot"
+    },
+    "facing=north,knot=true,top=true": {
+      "model": "summiteer:block/rope_top_knot"
+    },
+    "facing=east,knot=false,top=false": {
+      "model": "summiteer:block/rope",
+      "y": 90
+    },
+    "facing=east,knot=false,top=true": {
+      "model": "summiteer:block/rope_top",
+      "y": 90
+    },
+    "facing=east,knot=true,top=false": {
+      "model": "summiteer:block/rope_knot",
+      "y": 90
+    },
+    "facing=east,knot=true,top=true": {
+      "model": "summiteer:block/rope_top_knot",
+      "y": 90
+    },
+    "facing=south,knot=false,top=false": {
+      "model": "summiteer:block/rope",
+      "y": 180
+    },
+    "facing=south,knot=false,top=true": {
+      "model": "summiteer:block/rope_top",
+      "y": 180
+    },
+    "facing=south,knot=true,top=false": {
+      "model": "summiteer:block/rope_knot",
+      "y": 180
+    },
+    "facing=south,knot=true,top=true": {
+      "model": "summiteer:block/rope_top_knot",
+      "y": 180
+    },
+    "facing=west,knot=false,top=false": {
+      "model": "summiteer:block/rope",
+      "y": 270
+    },
+    "facing=west,knot=false,top=true": {
+      "model": "summiteer:block/rope_top",
+      "y": 270
+    },
+    "facing=west,knot=true,top=false": {
+      "model": "summiteer:block/rope_knot",
+      "y": 270
+    },
+    "facing=west,knot=true,top=true": {
+      "model": "summiteer:block/rope_top_knot",
+      "y": 270
+    }
+  }
+}

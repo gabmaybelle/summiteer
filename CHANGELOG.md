@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Rope and anchors: your way back down. Place an anchor at a cliff edge, facing the drop, and
+  right-click it with rope: the rope unrolls straight down to the ground (up to 32 blocks). Climb
+  it like a ladder, faster in climbing gloves; sneak-right-click the anchor to reel it all back in.
+  Works on any cliff, ravine or build. Rope: 3 string make 4. Anchor: an iron ingot, a stick and a
+  stone block.
+
 - Peaks always count as high ground. Frozen, jagged and stony peaks (and other mods' peaks) get
   the mountain weather at any height, so a low range of peaks that tops out under the treeline is
   no longer calm, and the ice axe grips their rock. Meadows, groves and slopes still need to be

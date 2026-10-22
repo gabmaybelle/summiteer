@@ -16,6 +16,12 @@ public final class Climbing {
 	/** How fast you climb with the axe alone, and with climbing gloves (a ladder is about 2.35). */
 	static final double BARE_BLOCKS_PER_SECOND = 1.0;
 	static final double GLOVES_BLOCKS_PER_SECOND = 1.6;
+	/**
+	 * Rope climbs at a ladder's pace bare-handed (vanilla's own rule), and this fast in climbing
+	 * gloves: the same 1.6 times as on the ice axe.
+	 */
+	static final double LADDER_BLOCKS_PER_SECOND = 2.35;
+	static final double ROPE_GLOVES_BLOCKS_PER_SECOND = LADDER_BLOCKS_PER_SECOND * 1.6;
 
 	/** Vanilla's gravity and air drag on a player: what a climb has to beat each tick. */
 	static final double GRAVITY = 0.08;
@@ -46,7 +52,16 @@ public final class Climbing {
 	 * we want to rise at.
 	 */
 	public static double climbVelocity(boolean gloves) {
-		return blocksPerSecond(gloves) / 20.0 / DRAG + GRAVITY;
+		return velocityFor(blocksPerSecond(gloves));
+	}
+
+	/** The upward speed to set on a rope in climbing gloves (bare-handed, vanilla's ladder speed stands). */
+	public static double ropeGlovesVelocity() {
+		return velocityFor(ROPE_GLOVES_BLOCKS_PER_SECOND);
+	}
+
+	private static double velocityFor(double blocksPerSecond) {
+		return blocksPerSecond / 20.0 / DRAG + GRAVITY;
 	}
 
 	/** What one tick of climbing at {@code velocity} actually rises, after gravity and drag. */

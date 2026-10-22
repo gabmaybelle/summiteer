@@ -3,6 +3,9 @@ package com.gabbymaybelle.summiteer;
 import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.gear.Gear;
+import com.gabbymaybelle.summiteer.rope.AnchorBlock;
+import com.gabbymaybelle.summiteer.rope.RopeBlock;
+import com.gabbymaybelle.summiteer.rope.Ropes;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import eu.pb4.trinkets.api.TrinketInventory;
@@ -17,16 +20,24 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.CameraType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.PowderSnowBlock;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * The mod in a real game. Run with {@code ./gradlew :fabric:runClientGameTest}; screenshots land
@@ -49,6 +60,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			cold(ctx, world);
 			warmth(ctx, world);
 			gear(ctx, world);
+			rope(ctx, world);
 		}
 		if (!failures.isEmpty()) {
 			throw new AssertionError(failures.size() + " check(s) failed:\n - " + String.join("\n - ", failures));
@@ -386,6 +398,185 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		});
 		Config.wind = true;
 		Config.cold = true;
+	}
+
+	/** Where the rope test's anchor sits: on top of a 12-high stone cliff, facing the drop to the west. */
+	private final int[] anchor = new int[3];
+
+	/**
+	 * Rope and anchor, on a stone cliff built on the ground 30 blocks east of the site (so below
+	 * the treeline: rope works anywhere). Right-clicking the anchor with 64 rope hangs 13 (the
+	 * anchor's level down to the ground) and leaves 51; you climb it at a ladder's pace, faster in
+	 * climbing gloves; sneak-right-click reels it all back in; breaking the anchor drops the rope
+	 * beside it; cutting the rope halfway drops the part below.
+	 */
+	private void rope(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		Config.wind = false;
+		Config.cold = false;
+		world.getServer().runOnServer(server -> {
+			ServerLevel level = player(server).level();
+			int x = site[0] + 30, z = site[2];
+			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x - 1, z) - 1;
+			command(server, "fill " + (x - 4) + " " + (ground + 1) + " " + (z - 3) + " " + (x + 5) + " " + (ground + 20) + " " + (z + 3) + " minecraft:air");
+			command(server, "fill " + x + " " + (ground + 1) + " " + (z - 2) + " " + (x + 5) + " " + (ground + 12) + " " + (z + 2) + " minecraft:stone");
+			anchor[0] = x;
+			anchor[1] = ground + 13;
+			anchor[2] = z;
+			placeAnchor(level);
+		});
+		String hung = world.getServer().computeOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
+			useOnAnchor(player);
+			ServerLevel level = player.level();
+			BlockPos top = anchorPos().west();
+			boolean knotAtBottom = level.getBlockState(top.below(12)).getValueOrElse(RopeBlock.KNOT, false) && !level.getBlockState(top).getValueOrElse(RopeBlock.KNOT, true)
+				&& level.getBlockState(top).getValueOrElse(RopeBlock.TOP, false) && !level.getBlockState(top.below()).getValueOrElse(RopeBlock.TOP, true);
+			return ropeBlocks(level) + " hung, " + player.getMainHandItem().getCount() + " left in hand, knot " + (knotAtBottom ? "at the bottom, tied at the top" : "misplaced");
+		});
+		check(hung.equals("13 hung, 51 left in hand, knot at the bottom, tied at the top"), "rope: right-clicking the anchor hangs rope to the ground (" + hung + ")");
+		ropeLooks(ctx, world);
+
+		double bare = climbRope(ctx, world, false);
+		double gloves = climbRope(ctx, world, true);
+		check(bare > 5.0, "rope: walking into the cliff climbs the rope at a ladder's pace (rose " + String.format("%.2f", bare) + " blocks in 3 s)");
+		check(gloves > bare + 2.0, "rope: climbing gloves climb it faster (rose " + String.format("%.2f", gloves) + " blocks against " + String.format("%.2f", bare) + ")");
+
+		// Off the rope and away from the cliff, so the player can't pick up the rope that falls.
+		standInTheMiddle(world);
+		String reeled = world.getServer().computeOnServer(server -> {
+			ServerPlayer player = player(server);
+			slot(player, "hand/glove").setItem(0, ItemStack.EMPTY);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 51));
+			player.setShiftKeyDown(true);
+			useOnAnchor(player);
+			player.setShiftKeyDown(false);
+			return ropeBlocks(player.level()) + " left hanging, " + ropeCarried(player) + " carried";
+		});
+		check(reeled.equals("0 left hanging, 64 carried"), "rope: sneak-right-click reels it all back in (" + reeled + ")");
+
+		String broken = world.getServer().computeOnServer(server -> {
+			ServerPlayer player = player(server);
+			useOnAnchor(player);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			command(server, "kill @e[type=item]");
+			player.gameMode.destroyBlock(anchorPos());
+			return ropeBlocks(player.level()) + " left hanging, " + ropeDropped(player.level()) + " dropped";
+		});
+		check(broken.equals("0 left hanging, 13 dropped"), "rope: breaking the anchor drops the whole rope by it (" + broken + ")");
+
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			command(server, "kill @e[type=item]");
+			placeAnchor(player.level());
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
+			useOnAnchor(player);
+			player.level().destroyBlock(anchorPos().west().below(6), false);
+		});
+		ctx.waitTicks(30);
+		String cut = world.getServer().computeOnServer(server -> {
+			ServerLevel level = player(server).level();
+			String result = ropeBlocks(level) + " left hanging, " + ropeDropped(level) + " dropped";
+			takeDownRope(server);
+			return result;
+		});
+		check(cut.equals("6 left hanging, 6 dropped"), "rope: cutting it halfway drops the rope below the cut (" + cut + ")");
+
+		Config.wind = true;
+		Config.cold = true;
+	}
+
+	/**
+	 * Screenshots for judging the rope and anchor by eye: the rope down the cliff from across the
+	 * drop, the anchor from the cliff top, and a climb from behind in third person.
+	 */
+	private void ropeLooks(ClientGameTestContext ctx, TestSingleplayerContext world) {
+		int ground = anchor[1] - 12;
+		// From the ground 7 blocks west and 3 south, looking up at the rope (yaw -115: north-east).
+		world.getServer().runOnServer(server -> command(server, "tp @a " + (anchor[0] - 7.5) + " " + ground + " " + (anchor[2] + 3.5) + " -115 -35"));
+		ctx.waitTicks(20);
+		ctx.takeScreenshot("rope-hanging");
+		// On the cliff top two blocks behind the anchor, looking west and down over the edge.
+		world.getServer().runOnServer(server -> command(server, "tp @a " + (anchor[0] + 2.5) + " " + anchor[1] + " " + (anchor[2] + 0.5) + " 90 50"));
+		ctx.waitTicks(20);
+		ctx.takeScreenshot("rope-anchor");
+		// Halfway up the rope, from behind.
+		ctx.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK));
+		world.getServer().runOnServer(server -> command(server, "tp @a " + (anchor[0] - 0.5) + " " + (ground + 5) + " " + (anchor[2] + 0.5) + " -90 10"));
+		ctx.getInput().holdKeyFor(options -> options.keyUp, 20);
+		ctx.takeScreenshot("rope-climb-third-person");
+		ctx.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
+	}
+
+	private BlockPos anchorPos() {
+		return new BlockPos(anchor[0], anchor[1], anchor[2]);
+	}
+
+	private void placeAnchor(ServerLevel level) {
+		level.setBlock(anchorPos(), Ropes.ANCHOR_BLOCK.get().defaultBlockState().setValue(AnchorBlock.FACING, Direction.WEST), Block.UPDATE_ALL);
+	}
+
+	/** Right-clicks the anchor's top with whatever is in the main hand, the way the game does. */
+	private void useOnAnchor(ServerPlayer player) {
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(anchorPos()), Direction.UP, anchorPos(), false);
+		player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+	}
+
+	/** How many rope blocks hang in the column in front of the anchor, down to the ground. */
+	private int ropeBlocks(ServerLevel level) {
+		int count = 0;
+		for (int dy = 0; dy <= 13; dy++) {
+			if (level.getBlockState(anchorPos().west().below(dy)).is(Ropes.ROPE_BLOCK.get())) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private static int ropeCarried(ServerPlayer player) {
+		int count = 0;
+		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+			ItemStack stack = player.getInventory().getItem(i);
+			if (stack.is(Ropes.ROPE.get())) {
+				count += stack.getCount();
+			}
+		}
+		return count;
+	}
+
+	/** Rope lying around the cliff as items. */
+	private int ropeDropped(ServerLevel level) {
+		AABB around = new AABB(anchorPos()).inflate(4, 16, 4);
+		int count = 0;
+		for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, around, entity -> entity.getItem().is(Ropes.ROPE.get()))) {
+			count += item.getItem().getCount();
+		}
+		return count;
+	}
+
+	private void takeDownRope(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = player(server).level();
+		Ropes.takeDown(level, anchorPos(), level.getBlockState(anchorPos()));
+		command(server, "kill @e[type=item]");
+	}
+
+	/** Stands at the foot of the rope and walks east into the cliff for three seconds; how far the player rose. */
+	private double climbRope(ClientGameTestContext ctx, TestSingleplayerContext world, boolean gloves) {
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			slot(player, "hand/glove").setItem(0, gloves ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
+			command(server, "tp @a " + (anchor[0] - 0.5) + " " + (anchor[1] - 12) + " " + (anchor[2] + 0.5) + " -90 0");
+			player.setDeltaMovement(0, 0, 0);
+		});
+		ctx.waitTicks(10);
+		ctx.getInput().holdKeyFor(options -> options.keyUp, 60);
+		double rose = world.getServer().computeOnServer(server -> player(server).getY() - (anchor[1] - 12));
+		if (gloves) {
+			ctx.takeScreenshot("rope-climb");
+		}
+		Summiteer.LOGGER.info("[test] rope climb with gloves {}: rose {}", gloves, rose);
+		return rose;
 	}
 
 	/** Walks east into the ice wall for three seconds; how many blocks the player rose. */

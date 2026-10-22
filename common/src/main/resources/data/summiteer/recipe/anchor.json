@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "S": "minecraft:stick",
+    "C": "#minecraft:stone_crafting_materials"
+  },
+  "pattern": [
+    "I",
+    "S",
+    "C"
+  ],
+  "result": {
+    "id": "summiteer:anchor"
+  }
+}

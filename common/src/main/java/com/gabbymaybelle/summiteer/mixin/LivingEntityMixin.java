@@ -2,6 +2,7 @@ package com.gabbymaybelle.summiteer.mixin;
 
 import com.gabbymaybelle.summiteer.gear.Climbing;
 import com.gabbymaybelle.summiteer.gear.Gear;
+import com.gabbymaybelle.summiteer.rope.Ropes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,13 +25,20 @@ public abstract class LivingEntityMixin {
 		}
 	}
 
-	/** Climbing the wall goes at the ice axe's speed, not a ladder's. */
+	/** Climbing the wall goes at the ice axe's speed, not a ladder's; a rope goes faster in climbing gloves. */
 	@Inject(method = "handleRelativeFrictionAndCalculateMovement", at = @At("RETURN"), cancellable = true)
 	private void summiteer$climbSpeed(Vec3 input, float friction, CallbackInfoReturnable<Vec3> cir) {
 		LivingEntity self = (LivingEntity) (Object) this;
 		Vec3 movement = cir.getReturnValue();
 		// Vanilla sets 0.2 exactly when it climbs; anything else is ordinary moving.
-		if (movement.y == 0.2 && !Gear.onVanillaClimbable(self) && Gear.onIceWall(self)) {
+		if (movement.y != 0.2) {
+			return;
+		}
+		if (Ropes.onRope(self)) {
+			if (Gear.wearsClimbingGloves(self)) {
+				cir.setReturnValue(new Vec3(movement.x, Climbing.ropeGlovesVelocity(), movement.z));
+			}
+		} else if (!Gear.onVanillaClimbable(self) && Gear.onIceWall(self)) {
 			cir.setReturnValue(new Vec3(movement.x, Climbing.climbVelocity(Gear.wearsClimbingGloves(self)), movement.z));
 		}
 	}

@@ -55,6 +55,15 @@ first, and add this session's row before ending.
   files (Trinkets applies `scale(1, -1, -1)` itself, so ours is `scale(-1, 1, -1)`), NeoForge with
   `neoforge/client/WornGearRenderer` (vanilla's pumpkin-on-a-head turn, `scale(-1, -1, 1)`). Both
   game tests take front, back and over-the-clothes screenshots of it.
+- **Rope and anchor** (`rope/`, decided 2026-10-22): the anchor sits on top of a block facing the
+  drop; right-clicking it with rope (`RopeItem.useOn`) hangs rope in the column in front of it,
+  down through air only, at most `RopeLength.MAX` (32), taking it from the stack; a second
+  right-click lengthens it. Sneak-right-click (empty hand: `AnchorBlock.useWithoutItem`; with rope:
+  `RopeItem`) reels it into the inventory; breaking the anchor by hand drops all of it at the
+  anchor. `RopeBlock` holds on while there is rope above or its anchor beside the top piece,
+  otherwise it falls as an item a tick later, taking the rest below with it. Climbing is vanilla's
+  (`#minecraft:climbable`); only the speed in climbing gloves is ours (`Climbing.ropeGlovesVelocity`,
+  1.6 times a ladder). Works anywhere, not only above the treeline.
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
   structure type (it samples the ground under the shrine's footing); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third

@@ -8,6 +8,9 @@ import static com.gabbymaybelle.summiteer.ClientTest.waitTicks;
 import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.gear.Gear;
+import com.gabbymaybelle.summiteer.rope.AnchorBlock;
+import com.gabbymaybelle.summiteer.rope.RopeBlock;
+import com.gabbymaybelle.summiteer.rope.Ropes;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
@@ -15,17 +18,25 @@ import java.nio.file.Files;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.client.CameraType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.PowderSnowBlock;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.CuriosSlotTypes;
@@ -89,6 +100,160 @@ final class SummiteerClientTest {
 		cold();
 		warmth();
 		gear();
+		rope();
+	}
+
+	/** Where the rope test's anchor sits: on top of a 12-high stone cliff, facing the drop to the west. */
+	private static final int[] ANCHOR = new int[3];
+	private static final String[] ROPE_RESULT = new String[4];
+	private static final double[] ROPE_CLIMB = new double[2];
+
+	/**
+	 * Rope and anchor, on a stone cliff built on the ground 30 blocks east of the site (so below
+	 * the treeline: rope works anywhere). Right-clicking the anchor with 64 rope hangs 13 (the
+	 * anchor's level down to the ground) and leaves 51; you climb it at a ladder's pace, faster in
+	 * climbing gloves; sneak-right-click reels it all back in; breaking the anchor drops the rope
+	 * beside it; cutting the rope halfway drops the part below.
+	 */
+	private static void rope() {
+		run(mc -> onServer(mc, server -> {
+			Config.wind = false;
+			Config.cold = false;
+			ServerLevel level = player(server).level();
+			int x = SITE_AT[0] + 30, z = SITE_AT[2];
+			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x - 1, z) - 1;
+			serverCommand(server, "fill " + (x - 4) + " " + (ground + 1) + " " + (z - 3) + " " + (x + 5) + " " + (ground + 20) + " " + (z + 3) + " minecraft:air");
+			serverCommand(server, "fill " + x + " " + (ground + 1) + " " + (z - 2) + " " + (x + 5) + " " + (ground + 12) + " " + (z + 2) + " minecraft:stone");
+			ANCHOR[0] = x;
+			ANCHOR[1] = ground + 13;
+			ANCHOR[2] = z;
+			placeAnchor(level);
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
+			useOnAnchor(player);
+			BlockPos top = anchorPos().west();
+			boolean knotAtBottom = level.getBlockState(top.below(12)).getValueOrElse(RopeBlock.KNOT, false) && !level.getBlockState(top).getValueOrElse(RopeBlock.KNOT, true)
+				&& level.getBlockState(top).getValueOrElse(RopeBlock.TOP, false) && !level.getBlockState(top.below()).getValueOrElse(RopeBlock.TOP, true);
+			ROPE_RESULT[0] = ropeBlocks(level) + " hung, " + player.getMainHandItem().getCount() + " left in hand, knot " + (knotAtBottom ? "at the bottom, tied at the top" : "misplaced");
+		}));
+		run(mc -> check(ROPE_RESULT[0].equals("13 hung, 51 left in hand, knot at the bottom, tied at the top"), "Rope: right-clicking the anchor didn't hang rope to the ground (" + ROPE_RESULT[0] + ")"));
+
+		climbRope(0, false);
+		climbRope(1, true);
+		run(mc -> {
+			check(ROPE_CLIMB[0] > 5.0, "Rope: walking into the cliff didn't climb the rope at a ladder's pace (rose " + String.format("%.2f", ROPE_CLIMB[0]) + " blocks in 3 s)");
+			check(ROPE_CLIMB[1] > ROPE_CLIMB[0] + 2.0, "Rope: climbing gloves didn't climb it faster (rose " + String.format("%.2f", ROPE_CLIMB[1])
+					+ " blocks against " + String.format("%.2f", ROPE_CLIMB[0]) + ")");
+		});
+
+		// Off the rope and away from the cliff, so the player can't pick up the rope that falls.
+		standInTheMiddle();
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			equip(player, "hands", ItemStack.EMPTY);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 51));
+			player.setShiftKeyDown(true);
+			useOnAnchor(player);
+			player.setShiftKeyDown(false);
+			ROPE_RESULT[1] = ropeBlocks(player.level()) + " left hanging, " + ropeCarried(player) + " carried";
+
+			useOnAnchor(player);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			serverCommand(server, "kill @e[type=item]");
+			player.gameMode.destroyBlock(anchorPos());
+			ROPE_RESULT[2] = ropeBlocks(player.level()) + " left hanging, " + ropeDropped(player.level()) + " dropped";
+
+			serverCommand(server, "kill @e[type=item]");
+			placeAnchor(player.level());
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
+			useOnAnchor(player);
+			player.level().destroyBlock(anchorPos().west().below(6), false);
+		}));
+		waitTicks(30);
+		run(mc -> onServer(mc, server -> {
+			ServerLevel level = player(server).level();
+			ROPE_RESULT[3] = ropeBlocks(level) + " left hanging, " + ropeDropped(level) + " dropped";
+			Ropes.takeDown(level, anchorPos(), level.getBlockState(anchorPos()));
+			serverCommand(server, "kill @e[type=item]");
+			player(server).setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			Config.wind = true;
+			Config.cold = true;
+		}));
+		run(mc -> {
+			check(ROPE_RESULT[1].equals("0 left hanging, 64 carried"), "Rope: sneak-right-click didn't reel it all back in (" + ROPE_RESULT[1] + ")");
+			check(ROPE_RESULT[2].equals("0 left hanging, 13 dropped"), "Rope: breaking the anchor didn't drop the whole rope by it (" + ROPE_RESULT[2] + ")");
+			check(ROPE_RESULT[3].equals("6 left hanging, 6 dropped"), "Rope: cutting it halfway didn't drop just the rope below the cut (" + ROPE_RESULT[3] + ")");
+		});
+	}
+
+	private static BlockPos anchorPos() {
+		return new BlockPos(ANCHOR[0], ANCHOR[1], ANCHOR[2]);
+	}
+
+	private static void placeAnchor(ServerLevel level) {
+		level.setBlock(anchorPos(), Ropes.ANCHOR_BLOCK.get().defaultBlockState().setValue(AnchorBlock.FACING, Direction.WEST), Block.UPDATE_ALL);
+	}
+
+	/** Right-clicks the anchor's top with whatever is in the main hand, the way the game does. */
+	private static void useOnAnchor(ServerPlayer player) {
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(anchorPos()), Direction.UP, anchorPos(), false);
+		player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+	}
+
+	/** How many rope blocks hang in the column in front of the anchor, down to the ground. */
+	private static int ropeBlocks(ServerLevel level) {
+		int count = 0;
+		for (int dy = 0; dy <= 13; dy++) {
+			if (level.getBlockState(anchorPos().west().below(dy)).is(Ropes.ROPE_BLOCK.get())) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private static int ropeCarried(ServerPlayer player) {
+		int count = 0;
+		for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+			ItemStack stack = player.getInventory().getItem(i);
+			if (stack.is(Ropes.ROPE.get())) {
+				count += stack.getCount();
+			}
+		}
+		return count;
+	}
+
+	/** Rope lying around the cliff as items. */
+	private static int ropeDropped(ServerLevel level) {
+		AABB around = new AABB(anchorPos()).inflate(4, 16, 4);
+		int count = 0;
+		for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, around, entity -> entity.getItem().is(Ropes.ROPE.get()))) {
+			count += item.getItem().getCount();
+		}
+		return count;
+	}
+
+	/** Stands at the foot of the rope and walks east into the cliff for three seconds; stores how far the player rose. */
+	private static void climbRope(int index, boolean gloves) {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			equip(player, "hands", gloves ? new ItemStack(Clothes.CLIMBING_GLOVES.get()) : ItemStack.EMPTY);
+			serverCommand(server, "tp @a " + (ANCHOR[0] - 0.5) + " " + (ANCHOR[1] - 12) + " " + (ANCHOR[2] + 0.5) + " -90 0");
+			player.setDeltaMovement(0, 0, 0);
+		}));
+		waitTicks(10);
+		run(mc -> mc.options.keyUp.setDown(true));
+		waitTicks(60);
+		run(mc -> {
+			mc.options.keyUp.setDown(false);
+			onServer(mc, server -> {
+				ROPE_CLIMB[index] = player(server).getY() - (ANCHOR[1] - 12);
+				Summiteer.LOGGER.info("[test] rope climb with gloves {}: rose {}", gloves, ROPE_CLIMB[index]);
+			});
+		});
+		if (gloves) {
+			ClientTest.screenshot();
+		}
 	}
 
 	/**
