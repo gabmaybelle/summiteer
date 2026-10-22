@@ -1,6 +1,6 @@
 """Builds the wide YouTube trailer (16:9, 1920x1080) from Trailer's frames.
 
-python assemble_trailer.py <video_trailer dir> <sounds dir> <out dir>
+python assemble_trailer.py <video_trailer dir> <sounds dir> <out dir> [recut]
 (sounds from get_sounds.py; set CAPTION_FONT to a heavy font file if none of the usual ones is found)
 
 Makes summiteer-trailer.mp4 (the game's own sounds), summiteer-trailer-silent.mp4 and two
@@ -23,13 +23,14 @@ from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 frames_dir, sounds_dir, out = sys.argv[1:4]
+RECUT = len(sys.argv) > 4 and sys.argv[4] == 'recut'
 FPS = 20
 AMBER = (242, 181, 74)
 WHITE = (255, 255, 255)
 repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 
 W, H = 1920, 1080
-NAME = 'summiteer-trailer'
+NAME = 'summiteer-trailer-recut' if RECUT else 'summiteer-trailer'
 SIZE, STROKE = 76, 7
 CAPTION_Y = 770          # the caption's top: lower third, above the hearts and hotbar (GUI scale 3)
 BADGE_BOX = (36, 32, 436, 112)
@@ -74,9 +75,51 @@ CAPTIONS = {
     'top': 'FALSE *SUMMIT*?',
     'worth': 'MOUNTAINS *WORTH CLIMBING*',
 }
+if RECUT:
+    # Minecraft players' own words (Gabby, 2026-10-22: the climbers' jokes needed climbing to get).
+    CAPTIONS = {
+        'gear': 'DRESS *WARM*',
+        'wind': 'HOLD *SNEAK*',
+        'climb': 'NO *LADDERS*',
+        'fall': 'NO WATER *BUCKET*',
+        'top': "CAN'T SEE A *THING*",
+        'worth': 'MOUNTAINS *WORTH CLIMBING*',
+    }
+
+
+def recut_segments():
+    """The climb-first cut (about 35 s; Gabby, 2026-10-22, on the Shorts' retention lessons): a
+    person moving from frame 1, no title card first, no standing shots. The third-person climb
+    up the wall, the slide down (the still hang between them trimmed), the gust and the brace cut
+    tight, a quick turn round the player at camp, then the whiteout, the goggles and the view."""
+    segs = []
+    hang, let_go, landed = at('w_fall', 'hang'), at('w_fall', 'let_go'), at('w_fall', 'landed')
+    if count('w_fall') and hang is not None and let_go is not None:
+        segs.append(seg('cliff', 'w_fall', 0, hang + 3, key='climb'))
+        segs.append(seg('cliff', 'w_fall', let_go - 5, (landed + 20) if landed is not None else count('w_fall'), key='fall'))
+    warn, hit = at('w_wind', 'gust_warning'), at('w_wind', 'gust')
+    bwarn, braced = at('w_wind', 'braced_gust_warning'), at('w_wind', 'braced_gust')
+    if warn is not None and hit is not None:
+        segs.append(seg('wind', 'w_wind', max(0, warn - 4), hit + 25, key='wind'))
+    if braced is not None:
+        segs.append(seg('wind', 'w_wind', max(0, first(bwarn, braced - 40) - 2), braced + 20, key='wind'))
+    if count('w_turn'):
+        segs.append(seg('gear', 'w_turn', 0, count('w_turn'), speed=4, key='gear'))
+    n = count('w_summit')
+    if n:
+        top, clear, gone = at('w_summit', 'on_top'), at('w_summit', 'clear'), at('w_summit', 'fog_gone')
+        if clear is not None and gone is not None:
+            segs.append(seg('summit', 'w_summit', max(0, (top or 0) - 40), clear, key='top'))
+            segs.append(seg('summit', 'w_summit', clear, gone, speed=2, key='top'))
+            segs.append(seg('summit', 'w_summit', gone, min(n, gone + 80), key='worth'))
+        else:
+            segs.append(seg('summit', 'w_summit', 0, n, key='top'))
+    return segs
 
 
 def segments():
+    if RECUT:
+        return recut_segments()
     """The cut, section by section, each fitted to the plan's timings (see SECTIONS)."""
     segs = []
     # 1. The summit view, the title card follows it.
