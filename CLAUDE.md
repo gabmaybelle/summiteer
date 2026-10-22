@@ -67,6 +67,15 @@ first, and add this session's row before ending.
   otherwise it falls as an item a tick later, taking the rest below with it. Climbing is vanilla's
   (`#minecraft:climbable`); only the speed in climbing gloves is ours (`Climbing.ropeGlovesVelocity`,
   1.6 times a ladder). Works anywhere, not only above the treeline.
+- **Base camp** (`camp/`, decided 2026-10-22): the **trail cairn** (`TrailCairnBlock`, light 7, a
+  wisp of snow) checks itself once a second with a scheduled block tick and, in a whiteout at its
+  own spot (the fog's rule: summit, snowstorm, open sky), chimes every three seconds on its own beat
+  (`CairnChime`), heard from 32 blocks: sound isn't fogged. A glowing block display was tried first
+  and couldn't be seen in the test game, so it was dropped. The **tent** (`TentBlock`, one block per
+  wool colour, `summiteer:<colour>_tent`) is an `AbstractBedBlock` like vanilla's straw bed: vanilla's
+  bed rule gives the respawn, the sleep and the night skip (Overworld only; elsewhere it just says
+  so instead of exploding); sneak-right-click with an empty hand packs it into one item and clears
+  the player's respawn if it was there. Its look is block models (two canvas panels at 45 degrees).
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
   structure type (it samples the ground under the shrine's footing); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third

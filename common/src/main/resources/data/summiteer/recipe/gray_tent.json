@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "tent",
+  "key": {
+    "W": "minecraft:gray_wool",
+    "S": "minecraft:stick"
+  },
+  "pattern": [
+    "WWW",
+    "SSS"
+  ],
+  "result": {
+    "id": "summiteer:gray_tent"
+  }
+}

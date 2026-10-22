@@ -185,7 +185,7 @@ public final class Weather {
 	}
 
 	/** A storm here that falls as snow (it rains below and snows up top). */
-	static boolean isSnowingAt(Level level, BlockPos pos) {
+	public static boolean isSnowingAt(Level level, BlockPos pos) {
 		return level.isRaining() && level.getBiome(pos).value().getPrecipitationAt(pos, level.getSeaLevel()) == Biome.Precipitation.SNOW;
 	}
 

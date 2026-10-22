@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "#minecraft:stone_crafting_materials",
+    "#minecraft:stone_crafting_materials",
+    "#minecraft:stone_crafting_materials",
+    "minecraft:torch"
+  ],
+  "result": {
+    "count": 2,
+    "id": "summiteer:trail_cairn"
+  }
+}

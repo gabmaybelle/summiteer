@@ -120,6 +120,9 @@ final class ClientTest {
 	static void createWorld(String baseName) {
 		String name = baseName + "-" + System.currentTimeMillis();
 		waitUntil("the title screen", 2400, mc -> mc.gui.overlay() == null && mc.gui.screen() != null);
+		// The game runs in the background and loses focus when it is sent behind other windows;
+		// a singleplayer game that pauses then stops the whole world (Fabric's test does the same).
+		run(mc -> mc.options.pauseOnLostFocus = false);
 		run(mc -> mc.createWorldOpenFlows().createFreshLevel(name,
 				new LevelSettings(name, GameType.CREATIVE, new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false), true,
 						WorldDataConfiguration.DEFAULT),

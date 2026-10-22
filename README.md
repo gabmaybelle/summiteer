@@ -23,7 +23,7 @@ See the [changelog](CHANGELOG.md) for the details.
 
 ## What's coming
 
-Ropes and anchors, trail cairns that show through fog, and a base camp tent to respawn at. Then
+Ropes and anchors, trail cairns that chime to guide you through a whiteout, and a base camp tent to respawn at. Then
 three mountain temples with a boss each: the Stone shrine on stony peaks, the Frost shrine on frozen
 peaks, and the Summit shrine on the tallest peak of a range. Ring a shrine's bell to wake its
 guardian; each one has a simple rule to learn and guards the key to the next. Avalanches later.

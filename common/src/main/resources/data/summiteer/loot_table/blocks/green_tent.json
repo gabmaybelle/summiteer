@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "condition": {
+            "type": "minecraft:match_block",
+            "blocks": "summiteer:green_tent",
+            "state": {
+              "part": "head"
+            }
+          },
+          "name": "summiteer:green_tent"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "summiteer:blocks/green_tent"
+}

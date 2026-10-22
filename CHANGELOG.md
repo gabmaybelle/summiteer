@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Trail cairns: mark your way up, find it again on the way down. A small stack of stones that
+  gives off a little light and a wisp of snow; in a whiteout it chimes softly every few seconds,
+  so you can follow the sound when you can't see. 3 cobblestone (any stone) and a torch make 2.
+- The base camp tent: a bed you can carry. Right-click it to set your respawn, sleep in it at
+  night, and sneak-right-click to pack it up and take it with you. In every wool colour: 3 wool
+  and 3 sticks. Beds are left as they are.
+
 - The wind takes your ender pearls. Above the treeline a thrown pearl drifts downwind: a few
   blocks off target up high, more on a summit and in a storm. Under a roof, or below the treeline,
   pearls fly straight. No more pearling past a climb.

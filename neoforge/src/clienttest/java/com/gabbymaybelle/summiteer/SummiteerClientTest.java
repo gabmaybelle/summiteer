@@ -5,6 +5,8 @@ import static com.gabbymaybelle.summiteer.ClientTest.createWorld;
 import static com.gabbymaybelle.summiteer.ClientTest.run;
 import static com.gabbymaybelle.summiteer.ClientTest.waitTicks;
 
+import com.gabbymaybelle.summiteer.camp.Camp;
+import com.gabbymaybelle.summiteer.camp.TrailCairnBlock;
 import com.gabbymaybelle.summiteer.client.Whiteout;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.gear.Gear;
@@ -16,14 +18,18 @@ import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.client.CameraType;
+import net.minecraft.client.sounds.SoundEventListener;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -32,7 +38,10 @@ import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnder
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.PowderSnowBlock;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -105,6 +114,154 @@ final class SummiteerClientTest {
 		gear();
 		rope();
 		pearls();
+		cairn();
+		tent();
+	}
+
+	private static final BlockPos[] CAIRNS = new BlockPos[2];
+	private static final List<Vec3> CHIMES = new CopyOnWriteArrayList<>();
+	private static final SoundEventListener CHIME_LISTENER = (sound, events, range) -> {
+		if (sound.getIdentifier().equals(SoundEvents.NOTE_BLOCK_CHIME.value().location())) {
+			CHIMES.add(new Vec3(sound.getX(), sound.getY(), sound.getZ()));
+		}
+	};
+	private static final long[] CAIRN_RESULT = new long[4];
+
+	/**
+	 * Trail cairns: a cairn on the summit site gives light 7; in clear weather the player hears no
+	 * chime from it; in a snowstorm (the site is frozen peaks, so it is a whiteout) they hear it
+	 * chime, every three seconds, from where it stands. A cairn on the low ground in the same storm
+	 * isn't in a whiteout, so it stays quiet.
+	 */
+	private static void cairn() {
+		run(mc -> onServer(mc, server -> {
+			Config.wind = false;
+			Config.cold = false;
+			ServerLevel level = player(server).level();
+			serverCommand(server, "weather clear");
+			CAIRNS[0] = new BlockPos(SITE_AT[0] + 4, SITE_AT[1] + 1, SITE_AT[2] + 4);
+			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, SITE_AT[0] + 20, SITE_AT[2] - 20);
+			CAIRNS[1] = new BlockPos(SITE_AT[0] + 20, ground, SITE_AT[2] - 20);
+			for (BlockPos pos : CAIRNS) {
+				level.setBlock(pos, Camp.TRAIL_CAIRN_BLOCK.get().defaultBlockState(), Block.UPDATE_ALL);
+			}
+		}));
+		standInTheMiddle();
+		run(mc -> mc.getSoundManager().addListener(CHIME_LISTENER));
+		waitTicks(80);
+		run(mc -> onServer(mc, server -> {
+			// Light is worked out a little after a block is placed, so it is read once things settle.
+			CAIRN_RESULT[0] = player(server).level().getBrightness(LightLayer.BLOCK, CAIRNS[0]);
+			CAIRN_RESULT[1] = chimesFrom(CAIRNS[0]);
+			serverCommand(server, "weather rain");
+		}));
+		waitTicks(180);
+		run(mc -> onServer(mc, server -> {
+			ServerLevel level = player(server).level();
+			CAIRN_RESULT[2] = chimesFrom(CAIRNS[0]) - CAIRN_RESULT[1];
+			CAIRN_RESULT[3] = TrailCairnBlock.inWhiteout(level, CAIRNS[1]) ? 0 : 1;
+			for (BlockPos pos : CAIRNS) {
+				level.destroyBlock(pos, false);
+			}
+			serverCommand(server, "weather clear");
+			Config.wind = true;
+			Config.cold = true;
+		}));
+		run(mc -> {
+			mc.getSoundManager().removeListener(CHIME_LISTENER);
+			Summiteer.LOGGER.info("[test] cairn: light {}, chimes heard in clear weather {}, in the storm {}, low cairn quiet {}",
+					CAIRN_RESULT[0], CAIRN_RESULT[1], CAIRN_RESULT[2], CAIRN_RESULT[3] == 1);
+			check(CAIRN_RESULT[0] == 7, "Cairn: it doesn't give light 7 (" + CAIRN_RESULT[0] + ")");
+			check(CAIRN_RESULT[1] == 0, "Cairn: it chimed in clear weather (" + CAIRN_RESULT[1] + " heard)");
+			check(CAIRN_RESULT[2] >= 2, "Cairn: in a whiteout you don't hear it chime (" + CAIRN_RESULT[2] + " chimes in 9 s)");
+			check(CAIRN_RESULT[3] == 1, "Cairn: below the treeline it counts as a whiteout");
+		});
+	}
+
+	private static long chimesFrom(BlockPos cairn) {
+		return CHIMES.stream().filter(at -> at.closerThan(Vec3.atCenterOf(cairn), 1)).count();
+	}
+
+	private static final BlockPos[] TENT_AT = new BlockPos[1];
+	private static final String[] TENT_RESULT = new String[4];
+	private static final boolean[] CLOCK_WAS_RUNNING = new boolean[1];
+
+	/**
+	 * The tent, on the low ground 40 blocks from the site, in peaceful (so no monster keeps the
+	 * player awake): placing it makes both halves; right-click sets the respawn there; at midnight
+	 * the player sleeps in it and the night is skipped; sneak-right-click packs it into one tent
+	 * and clears the respawn.
+	 */
+	private static void tent() {
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			ServerLevel level = player.level();
+			serverCommand(server, "difficulty peaceful");
+			serverCommand(server, "weather clear");
+			serverCommand(server, "time set noon");
+			int x = SITE_AT[0] + 40, z = SITE_AT[2];
+			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+			TENT_AT[0] = new BlockPos(x, ground, z);
+			serverCommand(server, "tp @a " + (x + 0.5) + " " + ground + " " + (z - 1.5) + " 0 30");
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Camp.TENTS.get(DyeColor.RED).get()));
+			BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(TENT_AT[0].below()), Direction.UP, TENT_AT[0].below(), false);
+			player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND, hit));
+			Block red = Camp.TENT_BLOCKS.get(DyeColor.RED).get();
+			TENT_RESULT[0] = (level.getBlockState(TENT_AT[0]).is(red) ? "foot" : "no foot") + ", "
+					+ (level.getBlockState(TENT_AT[0].south()).is(red) ? "head" : "no head") + ", hand " + (player.getMainHandItem().isEmpty() ? "empty" : "full");
+			useTent(player, TENT_AT[0], false);
+			ServerPlayer.RespawnConfig config = player.getRespawnConfig();
+			TENT_RESULT[1] = config == null ? "none" : config.respawnData().pos().closerThan(TENT_AT[0], 2) ? "at the tent" : "elsewhere " + config.respawnData().pos();
+			// The test world's clock is stopped, and a stopped clock doesn't skip the night, so it runs for this.
+			CLOCK_WAS_RUNNING[0] = level.getGameRules().get(GameRules.ADVANCE_TIME);
+			serverCommand(server, "gamerule advance_time true");
+			serverCommand(server, "time set midnight");
+		}));
+		// The sky darkens on the next tick after the time changes, so wait before lying down.
+		waitTicks(5);
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			useTent(player, TENT_AT[0], false);
+			TENT_RESULT[2] = player.isSleeping() ? "slept" : "awake";
+		}));
+		waitTicks(130);
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			ServerLevel level = player.level();
+			TENT_RESULT[2] += level.isBrightOutside() ? ", morning" : ", still night";
+			if (player.isSleeping()) {
+				player.stopSleeping();
+			}
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			useTent(player, TENT_AT[0], true);
+			boolean gone = level.getBlockState(TENT_AT[0]).isAir() && level.getBlockState(TENT_AT[0].south()).isAir();
+			int carried = 0;
+			for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+				if (player.getInventory().getItem(i).is(Camp.TENTS.get(DyeColor.RED).get())) {
+					carried += player.getInventory().getItem(i).getCount();
+				}
+			}
+			TENT_RESULT[3] = (gone ? "taken down" : "still up") + ", " + carried + " carried, respawn " + (player.getRespawnConfig() == null ? "cleared" : "kept");
+			player.getInventory().clearContent();
+			serverCommand(server, "difficulty normal");
+			serverCommand(server, "gamerule advance_time " + CLOCK_WAS_RUNNING[0]);
+			serverCommand(server, "time set noon");
+		}));
+		run(mc -> {
+			check(TENT_RESULT[0].equals("foot, head, hand empty"), "Tent: placing it didn't pitch both halves (" + TENT_RESULT[0] + ")");
+			check(TENT_RESULT[1].equals("at the tent"), "Tent: right-clicking it didn't set your respawn there (" + TENT_RESULT[1] + ")");
+			check(TENT_RESULT[2].equals("slept, morning"), "Tent: you didn't sleep the night away in it (" + TENT_RESULT[2] + ")");
+			check(TENT_RESULT[3].equals("taken down, 1 carried, respawn cleared"), "Tent: sneak-right-click didn't pack it up (" + TENT_RESULT[3] + ")");
+		});
+	}
+
+	/** Right-clicks the tent's head with an empty hand, sneaking or not, the way the game does. */
+	private static void useTent(ServerPlayer player, BlockPos foot, boolean sneaking) {
+		BlockPos head = foot.south();
+		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(head), Direction.UP, head, false);
+		player.setShiftKeyDown(sneaking);
+		player.level().getBlockState(head).useWithoutItem(player.level(), player, hit);
+		player.setShiftKeyDown(false);
 	}
 
 	private static final ThrownEnderpearl[] PEARLS = new ThrownEnderpearl[2];

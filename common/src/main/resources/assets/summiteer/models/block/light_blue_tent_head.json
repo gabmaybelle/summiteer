@@ -1,0 +1,7 @@
+{
+  "parent": "summiteer:block/template_tent_head",
+  "textures": {
+    "canvas": "summiteer:block/light_blue_tent",
+    "mat": "summiteer:block/tent_mat"
+  }
+}
