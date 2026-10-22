@@ -48,7 +48,8 @@ final class SummiteerClientTest {
 		createWorld("summiteer-clienttest");
 		run(mc -> check(ModList.get().isLoaded(Summiteer.MOD_ID), "The mod isn't loaded"));
 
-		// Zones: a column of stony peaks and one of plains beside the player, then each height asked.
+		// Zones: a column each of stony peaks, snowy slopes and plains beside the player, then each
+		// height asked. Peaks are high at any height; slopes only above the treeline.
 		run(mc -> {
 			BlockPos at = mc.player.blockPosition();
 			BOX[0] = at.getX();
@@ -61,6 +62,7 @@ final class SummiteerClientTest {
 			int x = BOX[0], z = BOX[1];
 			command(mc, "fillbiome " + (x + 8) + " " + sea + " " + z + " " + (x + 12) + " " + top + " " + (z + 4) + " minecraft:stony_peaks");
 			command(mc, "fillbiome " + (x - 12) + " " + sea + " " + z + " " + (x - 8) + " " + top + " " + (z + 4) + " minecraft:plains");
+			command(mc, "fillbiome " + (x - 2) + " " + sea + " " + (z + 8) + " " + (x + 2) + " " + top + " " + (z + 12) + " minecraft:snowy_slopes");
 		});
 		ClientTest.waitTicks(4);
 		run(mc -> {
@@ -72,7 +74,10 @@ final class SummiteerClientTest {
 				int summit = sea + Config.summitAboveSeaLevel;
 				BlockPos peaks = new BlockPos(BOX[0] + 10, 0, BOX[1] + 2);
 				BlockPos plains = new BlockPos(BOX[0] - 10, 0, BOX[1] + 2);
-				expect(Zone.LOW, Zones.at(level, peaks.atY(high - 2)), "stony peaks below the treeline");
+				BlockPos slopes = new BlockPos(BOX[0], 0, BOX[1] + 10);
+				expect(Zone.LOW, Zones.at(level, slopes.atY(high - 2)), "snowy slopes below the treeline");
+				expect(Zone.HIGH, Zones.at(level, slopes.atY(high + 2)), "snowy slopes above the treeline");
+				expect(Zone.HIGH, Zones.at(level, peaks.atY(sea + 20)), "stony peaks far below the treeline");
 				expect(Zone.HIGH, Zones.at(level, peaks.atY(high + 2)), "stony peaks above the treeline");
 				expect(Zone.LOW, Zones.at(level, plains.atY(high + 2)), "plains at the same height");
 				expect(Zone.SUMMIT, Zones.at(level, plains.atY(summit + 1)), "plains at summit height");

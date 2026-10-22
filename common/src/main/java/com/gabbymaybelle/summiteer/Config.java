@@ -34,7 +34,7 @@ public final class Config {
 
 	private static final Map<String, String> COMMENTS = new LinkedHashMap<>();
 	static {
-		COMMENTS.put("highAboveSeaLevel", "Where the treeline is: mountain biomes this many blocks above sea level count as high ground.");
+		COMMENTS.put("highAboveSeaLevel", "Where the treeline is: mountain biomes this many blocks above sea level count as high ground. Peak biomes count at any height.");
 		COMMENTS.put("summitAboveSeaLevel", "Where the summits start, in any biome. Raise both for packs with very tall terrain.");
 		COMMENTS.put("wind", "Gusts above the treeline that push you (true or false). Crouch to brace, or get under a roof.");
 		COMMENTS.put("cold", "Freezing in snowstorms up high and on summits at night (true or false). A fire warms you up.");

@@ -66,9 +66,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	}
 
 	/**
-	 * The zones in the world: the test paints a column of stony peaks and one of plains beside the
-	 * player with /fillbiome, then asks which zone points at each height are in, measured from the
-	 * world's own sea level.
+	 * The zones in the world: the test paints a column each of stony peaks, snowy slopes and plains
+	 * beside the player with /fillbiome, then asks which zone points at each height are in, measured
+	 * from the world's own sea level. Peaks are high at any height; slopes only above the treeline.
 	 */
 	private void zones(TestSingleplayerContext world) {
 		List<String> results = world.getServer().computeOnServer(server -> {
@@ -81,18 +81,23 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			String peaks = (at.getX() + 8) + " " + (sea) + " " + at.getZ() + " " + (at.getX() + 12) + " " + (summit + 4) + " " + (at.getZ() + 4);
 			String plains = (at.getX() - 12) + " " + (sea) + " " + at.getZ() + " " + (at.getX() - 8) + " " + (summit + 4) + " " + (at.getZ() + 4);
 			server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "fillbiome " + peaks + " minecraft:stony_peaks");
+			String slopes = (at.getX() - 2) + " " + (sea) + " " + (at.getZ() + 8) + " " + (at.getX() + 2) + " " + (summit + 4) + " " + (at.getZ() + 12);
 			server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "fillbiome " + plains + " minecraft:plains");
+			server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "fillbiome " + slopes + " minecraft:snowy_slopes");
 			BlockPos peaksAt = new BlockPos(at.getX() + 10, 0, at.getZ() + 2);
 			BlockPos plainsAt = new BlockPos(at.getX() - 10, 0, at.getZ() + 2);
+			BlockPos slopesAt = new BlockPos(at.getX(), 0, at.getZ() + 10);
 			List<String> out = new ArrayList<>();
-			out.add(Zones.at(level, peaksAt.atY(high - 2)) + " stony peaks below the treeline");
+			out.add(Zones.at(level, slopesAt.atY(high - 2)) + " snowy slopes below the treeline");
+			out.add(Zones.at(level, slopesAt.atY(high + 2)) + " snowy slopes above the treeline");
+			out.add(Zones.at(level, peaksAt.atY(sea + 20)) + " stony peaks far below the treeline");
 			out.add(Zones.at(level, peaksAt.atY(high + 2)) + " stony peaks above the treeline");
 			out.add(Zones.at(level, plainsAt.atY(high + 2)) + " plains at the same height");
 			out.add(Zones.at(level, plainsAt.atY(summit + 1)) + " plains at summit height");
 			out.add(Zones.at(server.getLevel(net.minecraft.world.level.Level.NETHER), peaksAt.atY(high + 2)) + " the Nether");
 			return out;
 		});
-		Zone[] expected = { Zone.LOW, Zone.HIGH, Zone.LOW, Zone.SUMMIT, Zone.LOW };
+		Zone[] expected = { Zone.LOW, Zone.HIGH, Zone.HIGH, Zone.HIGH, Zone.LOW, Zone.SUMMIT, Zone.LOW };
 		for (int i = 0; i < expected.length; i++) {
 			String result = results.get(i);
 			check(result.startsWith(expected[i].name() + " "), "zone: expected " + expected[i] + " for" + result.substring(result.indexOf(' ')) + ", got " + result.substring(0, result.indexOf(' ')));

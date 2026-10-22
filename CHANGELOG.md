@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Peaks always count as high ground. Frozen, jagged and stony peaks (and other mods' peaks) get
+  the mountain weather at any height, so a low range of peaks that tops out under the treeline is
+  no longer calm, and the ice axe grips their rock. Meadows, groves and slopes still need to be
+  above the treeline.
+
 ## 0.1.0
 
 The first release: mountain weather, clothes to stay warm, and the gear to climb.

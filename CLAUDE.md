@@ -13,6 +13,9 @@ first, and add this session's row before ending.
 - **Zones** (`zones/`): every mountain feature asks `Zones.at(level, pos)`: `LOW`, `HIGH` (a mountain
   biome above the treeline) or `SUMMIT` (summit height, any biome). Heights are measured from the
   world's sea level and are settings; "mountain" is `#minecraft:is_mountain` or `#c:is_mountain`.
+  Peak biomes (`#summiteer:above_treeline`: vanilla's three peaks and `#c:is_mountain/peak`) are
+  `HIGH` at any height (decided 2026-10-21: low ranges of jagged peaks topped out under the treeline
+  and got no weather); meadows, groves and slopes keep the height rule.
   **Never use a fixed Y**: terrain mods (Tectonic, Terralith, Amplified) make mountains much taller.
 - **Weather** (`weather/`, `client/Whiteout`): one look per player per second (zone, sheltered,
   snowing, fire near); the server decides wind and cold, the client draws the whiteout fog from the
@@ -88,7 +91,7 @@ its `Platform` queues them and the result is a `Supplier`. The same goes for cre
   window (a minute or two). `./gradlew :neoforge:runClientTest`: the same on the NeoForge jar.
   Add `-PtestTectonic` or `-PtestTerralith` to either to play it with that mod installed (fetched
   from Modrinth's maven by version id in `gradle.properties`, never bundled); CI runs all three.
-- Zone check: the test paints stony peaks and plains beside the player with `/fillbiome` and asks
+- Zone check: the test paints stony peaks, snowy slopes and plains beside the player with `/fillbiome` and asks
   the zone at heights measured from the world's own sea level, plus the Nether (always `LOW`).
 
 ## Gotchas

@@ -4,17 +4,13 @@
 
 - **What it does:** mountain weather above the treeline (wind gusts, cold in snowstorms and on
   summits at night, whiteouts on summits), dyeable wool mountain clothes that keep the cold off, and
-  climbing gear: an ice axe that climbs snow, ice and (above the treeline) rock, climbing gloves,
+  climbing gear: an ice axe that climbs snow, ice and (above the treeline or on peaks) rock, climbing gloves,
   crampons and snow goggles in Curios or Trinkets Updated slots, worn visibly and put on by
   right-click. Fabric and NeoForge on 26.3; the in-game tests run on both, on their own and with
   Tectonic and Terralith.
 - **Broken:** nothing known.
-- **Open question for Gabby:** the treeline sits 70 blocks above sea level. In one hand-play world
-  the nearest jagged peaks topped out 22 blocks below it, so that range had no mountain weather; in
-  others the peaks reached 30 blocks above it. Worth a look before the 1.21.1 port.
-- **Next:** list it on CurseForge (Gabby), then ropes, cairns and the tent, then the Stone shrine
-  and the Cairn; avalanches and the other two shrines later. 1.21.1 once it has been listed and
-  played; 1.20.1 only if players ask.
+- **Next:** ropes, cairns and the tent, then the Stone shrine and the Cairn; avalanches and the
+  other two shrines later. 1.21.1 once it has been played; 1.20.1 only if players ask.
 
 ## Sessions
 
@@ -29,3 +25,4 @@
 | 2026-10-20 | Faster test rounds | The NeoForge in-game test now notes each failed check and carries on, failing at the end with the full list (as the Fabric one does), so one proof branch can switch off several features at once. CI stops a run when a newer push to the same branch replaces it, and skips pushes that only change notes, art sources or the licence. |
 | 2026-10-20 | Worn gear, sprites | Gabby chose: the goggles, crampons and gloves show on the player in 0.1.0, as small worn models (Trinkets' armour-style swap would have hidden helmets and boots); the item sprites redrawn in the icon's style (dyed items as a tinted base plus an untinted overlay for the outline and fixed parts, like leather); the recipes stay; climbing no longer wears the ice axe. Both game tests photograph the worn gear (front, back, over the beanie and wool socks); after three rounds (the first had the goggles backwards and the gloves inside the skin's sleeve layer on Fabric, the second the gloves upside-down on Fabric) Fabric and NeoForge look the same: goggles over the eyes with the strap round the back, gloves on the hands, crampons under the boots, all over the clothes. |
 | 2026-10-20 | Release prep | Hand play of the release jars on both loaders, in survival on real frozen peaks, wearing Gabby's skin: right-click puts on the goggles, crampons, gloves and clothes; the ice axe climbs a natural packed-ice cliff; crampons walk over powder snow; in a thunderstorm the full kit keeps the cold off (frozen 0 after 25 s) and without the gloves the cold creeps in (27 after 25 s); the new sprites show in the hotbar and in hand. The window stayed responsive on both, and neither log has an error from Summiteer. The release changelog gained the weather, which it had been missing, and the README now says what 0.1.0 has and what is still to come. |
+| 2026-10-21 | Peaks count as high ground | Gabby chose: peak biomes are above the treeline at any height, since one hand-play range of jagged peaks topped out 22 blocks under the treeline and got no weather. `Zones.isPeak` asks the new biome tag `summiteer:above_treeline` (frozen, jagged and stony peaks, plus the shared `c:is_mountain/peak`, optional, so terrain mods' peaks count too); meadows, groves and slopes keep the height rule, and summit height is unchanged. The ice axe grips rock on those peaks too, since it follows the zone. 30 unit tests pass (2 new: peaks are high far below the treeline, and still need summit height for the summit). Both jars build and both game tests compile; NeoForge (with Curios) and Fabric (with Trinkets Updated) dedicated servers load with 0 problem lines. Both game tests now also paint snowy slopes: slopes below the treeline are LOW and above it HIGH, and stony peaks 20 blocks above sea level are HIGH. Both game tests pass (Fabric: 34 checks; NeoForge: every check). Proof run with peaks switched off: on both loaders exactly the new check failed ("stony peaks far below the treeline: expected HIGH, got LOW"), everything else passed. A first NeoForge proof run also failed every movement check from the climbs on (the player never moved) after the game window briefly took focus and was handed back; the rerun was clean. With Tectonic 3.0.31 and with Terralith 2.6.5: both game tests pass on both loaders (Fabric 34 checks each; NeoForge every check). |
