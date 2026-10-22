@@ -25,7 +25,10 @@ first, and add this session's row before ending.
   turns once every four days, the same for everyone. Cold: above the treeline in a snowstorm (not
   under a roof), or on a summit at night; a fire or lit campfire within 3 blocks stops it.
   Whiteout: summit plus snowstorm, fades over 3 s, only ever thickens the fog
-  (`mixin/client/FogRendererMixin`).
+  (`mixin/client/FogRendererMixin`). Thrown ender pearls drift downwind every tick of their
+  flight above the treeline and under open sky (`Wind.pearlDrift`, `Weather.driftPearl`,
+  `mixin/ThrownEnderpearlMixin`, both sides): the steady wind, not gusts, which a pearl's second
+  or two in the air would mostly miss (decided 2026-10-22).
 - **Cold**: vanilla's freezing ticks (5 a second net, so about 28 s to fully frozen), held off by
   **warmth** (planned, `Cold.perSecond(warmth)`: one point takes one off): each piece of the mountain
   clothes (beanie, parka, snow pants, wool socks; dyeable wool armour, leather-level protection) and

@@ -18,6 +18,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -164,8 +166,26 @@ public final class Weather {
 		return !level.canSeeSky(BlockPos.containing(player.getX(), player.getEyeY(), player.getZ()));
 	}
 
+	/**
+	 * The wind's lean on a thrown ender pearl, every tick of its flight, before it moves. It runs on
+	 * both sides (the client draws the pearl's flight itself) from the same synced time, weather and
+	 * biome, like the whiteout; the server's pearl is the one that lands. Nothing under a roof.
+	 */
+	public static void driftPearl(Entity pearl) {
+		Level level = pearl.level();
+		BlockPos pos = pearl.blockPosition();
+		if (!Config.wind || level.dimension() != Level.OVERWORLD || !level.canSeeSky(pos)) {
+			return;
+		}
+		double drift = Wind.pearlDrift(Zones.at(level, pos), isSnowingAt(level, pos));
+		if (drift > 0) {
+			double angle = Wind.direction(level.getGameTime());
+			pearl.setDeltaMovement(pearl.getDeltaMovement().add(Math.cos(angle) * drift, 0, Math.sin(angle) * drift));
+		}
+	}
+
 	/** A storm here that falls as snow (it rains below and snows up top). */
-	static boolean isSnowingAt(ServerLevel level, BlockPos pos) {
+	static boolean isSnowingAt(Level level, BlockPos pos) {
 		return level.isRaining() && level.getBiome(pos).value().getPrecipitationAt(pos, level.getSeaLevel()) == Biome.Precipitation.SNOW;
 	}
 

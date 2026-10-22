@@ -66,4 +66,30 @@ class WindTest {
 		// Every gust leaves room for its full warning.
 		assertTrue(Wind.ticksUntilNextGust(true, 0) > Wind.WARNING_TICKS);
 	}
+
+	@Test
+	void pearlsFlyStraightBelowTheTreeline() {
+		assertEquals(0, Wind.pearlDrift(Zone.LOW, false), EPSILON);
+		assertEquals(0, Wind.pearlDrift(Zone.LOW, true), EPSILON);
+	}
+
+	@Test
+	void pearlsDriftMoreOnSummitsAndInStorms() {
+		assertTrue(Wind.pearlDrift(Zone.HIGH, false) > 0);
+		assertTrue(Wind.pearlDrift(Zone.SUMMIT, false) > Wind.pearlDrift(Zone.HIGH, false));
+		assertEquals(Wind.pearlDrift(Zone.SUMMIT, false) * 1.5, Wind.pearlDrift(Zone.SUMMIT, true), EPSILON);
+	}
+
+	@Test
+	void aLongThrowOnASummitLandsBlocksOffTarget() {
+		// About 30 ticks in the air; each tick's drift keeps adding to the sideways speed (vanilla's
+		// air drag of 0.99 a tick barely trims it).
+		double speed = 0;
+		double off = 0;
+		for (int tick = 0; tick < 30; tick++) {
+			speed = (speed + Wind.pearlDrift(Zone.SUMMIT, false)) * 0.99;
+			off += speed;
+		}
+		assertTrue(off > 6 && off < 12, "off target by " + off);
+	}
 }

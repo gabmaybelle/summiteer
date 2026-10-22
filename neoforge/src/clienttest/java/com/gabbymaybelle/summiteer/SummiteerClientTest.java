@@ -11,6 +11,7 @@ import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.rope.AnchorBlock;
 import com.gabbymaybelle.summiteer.rope.RopeBlock;
 import com.gabbymaybelle.summiteer.rope.Ropes;
+import com.gabbymaybelle.summiteer.weather.Wind;
 import com.gabbymaybelle.summiteer.zones.Zone;
 import com.gabbymaybelle.summiteer.zones.Zones;
 import java.io.IOException;
@@ -24,8 +25,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -101,6 +104,46 @@ final class SummiteerClientTest {
 		warmth();
 		gear();
 		rope();
+		pearls();
+	}
+
+	private static final ThrownEnderpearl[] PEARLS = new ThrownEnderpearl[2];
+	private static final double[] PEARL_DRIFT = new double[2];
+
+	/**
+	 * Pearls in the wind: an ender pearl thrown straight up over the open summit drifts downwind
+	 * by the time it has been up a second; one thrown on the low ground beside it doesn't.
+	 */
+	private static void pearls() {
+		run(mc -> onServer(mc, server -> {
+			ServerLevel level = player(server).level();
+			serverCommand(server, "weather clear");
+			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, SITE_AT[0] + 20, SITE_AT[2] + 20);
+			PEARLS[0] = throwUp(level, SITE_AT[0] + 0.5, SITE_AT[1] + 3, SITE_AT[2] + 0.5);
+			PEARLS[1] = throwUp(level, SITE_AT[0] + 20.5, ground + 2, SITE_AT[2] + 20.5);
+		}));
+		waitTicks(20);
+		run(mc -> onServer(mc, server -> {
+			double angle = Wind.direction(player(server).level().getGameTime());
+			PEARL_DRIFT[0] = (PEARLS[0].getX() - (SITE_AT[0] + 0.5)) * Math.cos(angle) + (PEARLS[0].getZ() - (SITE_AT[2] + 0.5)) * Math.sin(angle);
+			PEARL_DRIFT[1] = (PEARLS[1].getX() - (SITE_AT[0] + 20.5)) * Math.cos(angle) + (PEARLS[1].getZ() - (SITE_AT[2] + 20.5)) * Math.sin(angle);
+			PEARLS[0].discard();
+			PEARLS[1].discard();
+			Summiteer.LOGGER.info("[test] pearl drift downwind in 1 s: summit {}, low ground {}", PEARL_DRIFT[0], PEARL_DRIFT[1]);
+		}));
+		run(mc -> {
+			check(PEARL_DRIFT[0] > 2.0, "Pearls: the wind didn't blow a pearl downwind over a summit (" + String.format("%.2f", PEARL_DRIFT[0]) + " blocks in 1 s)");
+			check(Math.abs(PEARL_DRIFT[1]) < 0.1, "Pearls: below the treeline a pearl still drifted (" + String.format("%.2f", PEARL_DRIFT[1]) + " blocks in 1 s)");
+		});
+	}
+
+	/** An ownerless ender pearl thrown straight up from a place (it lands without teleporting anyone). */
+	private static ThrownEnderpearl throwUp(ServerLevel level, double x, double y, double z) {
+		ThrownEnderpearl pearl = new ThrownEnderpearl(EntityTypes.ENDER_PEARL, level);
+		pearl.setPos(x, y, z);
+		pearl.setDeltaMovement(0, 1.0, 0);
+		level.addFreshEntity(pearl);
+		return pearl;
 	}
 
 	/** Where the rope test's anchor sits: on top of a 12-high stone cliff, facing the drop to the west. */

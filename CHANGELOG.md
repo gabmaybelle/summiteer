@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The wind takes your ender pearls. Above the treeline a thrown pearl drifts downwind: a few
+  blocks off target up high, more on a summit and in a storm. Under a roof, or below the treeline,
+  pearls fly straight. No more pearling past a climb.
+
 - Rope and anchors: your way back down. Place an anchor at a cliff edge, facing the drop, and
   right-click it with rope: the rope unrolls straight down to the ground (up to 32 blocks). Climb
   it like a ladder, faster in climbing gloves; sneak-right-click the anchor to reel it all back in.

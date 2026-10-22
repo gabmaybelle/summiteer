@@ -23,6 +23,14 @@ public final class Wind {
 	static final double GLIDING = 1.5;
 	static final double CRAMPONS = 0.5;
 
+	/**
+	 * How hard the wind leans on a thrown ender pearl, in blocks per tick added each tick. Not
+	 * gusts: a pearl is in the air a second or two and gusts come every 8 to 16, so the steady
+	 * wind does it (Gabby, 2026-10-22), and you can't pearl your way past a climb.
+	 */
+	static final double HIGH_PEARL_DRIFT = 0.01;
+	static final double SUMMIT_PEARL_DRIFT = 0.02;
+
 	/** One full turn of the wind every four in-game days. */
 	static final long TURN_TICKS = 4 * 24000L;
 
@@ -51,6 +59,20 @@ public final class Wind {
 			}
 		}
 		return push;
+	}
+
+	/**
+	 * How much a thrown ender pearl drifts downwind each tick, in blocks per tick; 0 below the
+	 * treeline. Over a long throw (about 30 ticks in the air) that is some 4 blocks up high and 9 on
+	 * a summit, half as much again in a storm.
+	 */
+	public static double pearlDrift(Zone zone, boolean storm) {
+		double drift = switch (zone) {
+			case LOW -> 0;
+			case HIGH -> HIGH_PEARL_DRIFT;
+			case SUMMIT -> SUMMIT_PEARL_DRIFT;
+		};
+		return storm ? drift * STORM : drift;
 	}
 
 	/** The way the wind blows towards, in radians (0 is towards +X, a quarter turn is towards +Z). */
