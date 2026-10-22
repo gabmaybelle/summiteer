@@ -203,6 +203,10 @@ final class SummiteerClientTest {
 	 * and clears the respawn.
 	 */
 	private static void tent() {
+		// Forty blocks from the player can be past what the game keeps loaded; load it (which takes a
+		// moment) before reading its ground.
+		run(mc -> onServer(mc, server -> serverCommand(server, "forceload add " + (SITE_AT[0] + 40) + " " + SITE_AT[2])));
+		waitTicks(20);
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
 			ServerLevel level = player.level();
@@ -256,6 +260,7 @@ final class SummiteerClientTest {
 			serverCommand(server, "difficulty normal");
 			serverCommand(server, "gamerule advance_time " + CLOCK_WAS_RUNNING[0]);
 			serverCommand(server, "time set noon");
+			serverCommand(server, "forceload remove " + TENT_AT[0].getX() + " " + TENT_AT[0].getZ());
 		}));
 		run(mc -> {
 			check(TENT_RESULT[0].equals("foot, head, hand empty"), "Tent: placing it didn't pitch both halves (" + TENT_RESULT[0] + ")");
@@ -397,6 +402,8 @@ final class SummiteerClientTest {
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
 			useOnAnchor(player);
 		}));
+		// A second for the snow and the rope to reach the player's own game before they stand there.
+		waitTicks(20);
 		climbRope(2, false);
 		run(mc -> onServer(mc, server -> {
 			ServerLevel level = player(server).level();

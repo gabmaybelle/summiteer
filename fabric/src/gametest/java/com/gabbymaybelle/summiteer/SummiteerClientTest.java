@@ -518,13 +518,17 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	 */
 	private void tent(ClientGameTestContext ctx, TestSingleplayerContext world) {
 		BlockPos[] at = new BlockPos[1];
+		int x = site[0] + 40, z = site[2];
+		// Forty blocks from the player can be past what the game keeps loaded; load it (which takes a
+		// moment) before reading its ground.
+		world.getServer().runOnServer(server -> command(server, "forceload add " + x + " " + z));
+		ctx.waitTicks(20);
 		String pitched = world.getServer().computeOnServer(server -> {
 			ServerPlayer player = player(server);
 			ServerLevel level = player.level();
 			command(server, "difficulty peaceful");
 			command(server, "weather clear");
 			command(server, "time set noon");
-			int x = site[0] + 40, z = site[2];
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
 			at[0] = new BlockPos(x, ground, z);
 			command(server, "tp @a " + (x + 0.5) + " " + ground + " " + (z - 1.5) + " 0 30");
@@ -591,6 +595,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			command(server, "difficulty normal");
 			command(server, "gamerule advance_time " + clockWasRunning);
 			command(server, "time set noon");
+			command(server, "forceload remove " + at[0].getX() + " " + at[0].getZ());
 			return result;
 		});
 		check(packed.equals("taken down, 1 carried, respawn cleared"), "tent: sneak-right-click packs it up (" + packed + ")");
@@ -704,6 +709,8 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
 			useOnAnchor(player);
 		});
+		// A second for the snow and the rope to reach the player's own game before they stand there.
+		ctx.waitTicks(20);
 		double fromSnow = climbRope(ctx, world, false);
 		world.getServer().runOnServer(server -> {
 			takeDownRope(server);
