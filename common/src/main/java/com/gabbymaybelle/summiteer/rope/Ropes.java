@@ -70,7 +70,17 @@ public final class Ropes {
 
 	/** Whether this entity is holding on to a rope (it climbs rope at the gloves' speed). */
 	public static boolean onRope(LivingEntity entity) {
-		return entity.getInBlockState().is(ROPE_BLOCK.get());
+		return entity.getInBlockState().is(ROPE_BLOCK.get()) || ropeJustAbove(entity);
+	}
+
+	/**
+	 * Standing under the rope's last piece. The rope only hangs through air, so it stops just above
+	 * a snow layer, tall grass or a slab at the foot of a cliff, and a player standing on that has
+	 * their feet in its block, not the rope's: this lets them still take hold (found in a hand play,
+	 * 2026-10-22, at the foot of a snowy cliff).
+	 */
+	public static boolean ropeJustAbove(LivingEntity entity) {
+		return !entity.isSpectator() && entity.level().getBlockState(entity.blockPosition().above()).is(ROPE_BLOCK.get());
 	}
 
 	/** Where the rope from an anchor starts: the block in front of it, over the drop. */

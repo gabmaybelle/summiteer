@@ -315,7 +315,7 @@ final class SummiteerClientTest {
 	/** Where the rope test's anchor sits: on top of a 12-high stone cliff, facing the drop to the west. */
 	private static final int[] ANCHOR = new int[3];
 	private static final String[] ROPE_RESULT = new String[4];
-	private static final double[] ROPE_CLIMB = new double[2];
+	private static final double[] ROPE_CLIMB = new double[3];
 
 	/**
 	 * Rope and anchor, on a stone cliff built on the ground 30 blocks east of the site (so below
@@ -388,7 +388,23 @@ final class SummiteerClientTest {
 			Config.wind = true;
 			Config.cold = true;
 		}));
+		// A snow layer at the cliff's foot: the rope only hangs through air, so it stops a block
+		// higher, and a player standing on the snow (feet in the snow's block) must still take hold.
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			serverCommand(server, "setblock " + (ANCHOR[0] - 1) + " " + (ANCHOR[1] - 12) + " " + ANCHOR[2] + " minecraft:snow");
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
+			useOnAnchor(player);
+		}));
+		climbRope(2, false);
+		run(mc -> onServer(mc, server -> {
+			ServerLevel level = player(server).level();
+			Ropes.takeDown(level, anchorPos(), level.getBlockState(anchorPos()));
+			serverCommand(server, "setblock " + (ANCHOR[0] - 1) + " " + (ANCHOR[1] - 12) + " " + ANCHOR[2] + " minecraft:air");
+			player(server).setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+		}));
 		run(mc -> {
+			check(ROPE_CLIMB[2] > 3.0, "Rope: standing on snow under its last piece, you couldn't climb it (rose " + String.format("%.2f", ROPE_CLIMB[2]) + " blocks in 3 s)");
 			check(ROPE_RESULT[1].equals("0 left hanging, 64 carried"), "Rope: sneak-right-click didn't reel it all back in (" + ROPE_RESULT[1] + ")");
 			check(ROPE_RESULT[2].equals("0 left hanging, 13 dropped"), "Rope: breaking the anchor didn't drop the whole rope by it (" + ROPE_RESULT[2] + ")");
 			check(ROPE_RESULT[3].equals("6 left hanging, 6 dropped"), "Rope: cutting it halfway didn't drop just the rope below the cut (" + ROPE_RESULT[3] + ")");

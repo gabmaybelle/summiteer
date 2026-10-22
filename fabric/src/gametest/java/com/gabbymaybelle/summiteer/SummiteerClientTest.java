@@ -696,6 +696,21 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		});
 		check(cut.equals("6 left hanging, 6 dropped"), "rope: cutting it halfway drops the rope below the cut (" + cut + ")");
 
+		// A snow layer at the cliff's foot: the rope only hangs through air, so it stops a block
+		// higher, and a player standing on the snow (feet in the snow's block) must still take hold.
+		world.getServer().runOnServer(server -> {
+			ServerPlayer player = player(server);
+			command(server, "setblock " + (anchor[0] - 1) + " " + (anchor[1] - 12) + " " + anchor[2] + " minecraft:snow");
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
+			useOnAnchor(player);
+		});
+		double fromSnow = climbRope(ctx, world, false);
+		world.getServer().runOnServer(server -> {
+			takeDownRope(server);
+			command(server, "setblock " + (anchor[0] - 1) + " " + (anchor[1] - 12) + " " + anchor[2] + " minecraft:air");
+		});
+		check(fromSnow > 3.0, "rope: standing on snow under its last piece, you can still climb it (rose " + String.format("%.2f", fromSnow) + " blocks in 3 s)");
+
 		Config.wind = true;
 		Config.cold = true;
 	}

@@ -25,6 +25,14 @@ public abstract class LivingEntityMixin {
 		}
 	}
 
+	/** Standing under a rope that ends just above a snow layer or tall grass still takes hold of it (see {@link Ropes#ropeJustAbove}). */
+	@Inject(method = "onClimbable", at = @At("RETURN"), cancellable = true)
+	private void summiteer$ropeFoot(CallbackInfoReturnable<Boolean> cir) {
+		if (!cir.getReturnValueZ() && Ropes.ropeJustAbove((LivingEntity) (Object) this)) {
+			cir.setReturnValue(true);
+		}
+	}
+
 	/** Climbing the wall goes at the ice axe's speed, not a ladder's; a rope goes faster in climbing gloves. */
 	@Inject(method = "handleRelativeFrictionAndCalculateMovement", at = @At("RETURN"), cancellable = true)
 	private void summiteer$climbSpeed(Vec3 input, float friction, CallbackInfoReturnable<Vec3> cir) {
