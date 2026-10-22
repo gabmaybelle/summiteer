@@ -4,6 +4,7 @@ import static com.gabbymaybelle.summiteer.ClientTest.check;
 import static com.gabbymaybelle.summiteer.ClientTest.createWorld;
 import static com.gabbymaybelle.summiteer.ClientTest.run;
 import static com.gabbymaybelle.summiteer.ClientTest.waitTicks;
+import static com.gabbymaybelle.summiteer.ClientTest.waitUntil;
 
 import com.gabbymaybelle.summiteer.camp.Camp;
 import com.gabbymaybelle.summiteer.camp.TrailCairnBlock;
@@ -466,9 +467,13 @@ final class SummiteerClientTest {
 			serverCommand(server, "tp @a " + (ANCHOR[0] - 0.5) + " " + (ANCHOR[1] - 12) + " " + (ANCHOR[2] + 0.5) + " -90 0");
 			player.setDeltaMovement(0, 0, 0);
 		}));
-		// A full second: the game ignores the player's own movement until the teleport is confirmed, and the
-		// climb straight after the last one (still on the rope, higher up) sometimes took longer than half that.
-		waitTicks(20);
+		// The game ignores the player's own movement until the teleport is confirmed, and on CI's
+		// machines a fixed wait wasn't always long enough: wait until the player's own game has them
+		// standing at the rope's foot, then a moment more.
+		waitUntil("the player standing at the rope's foot", 200, mc -> mc.player != null && mc.player.onGround()
+				&& Math.abs(mc.player.getX() - (ANCHOR[0] - 0.5)) < 0.3 && Math.abs(mc.player.getZ() - (ANCHOR[2] + 0.5)) < 0.3
+				&& mc.player.getY() < ANCHOR[1] - 10);
+		waitTicks(10);
 		run(mc -> mc.options.keyUp.setDown(true));
 		waitTicks(60);
 		run(mc -> {
