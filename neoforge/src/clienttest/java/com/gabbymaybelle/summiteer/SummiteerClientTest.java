@@ -450,7 +450,9 @@ final class SummiteerClientTest {
 			serverCommand(server, "tp @a " + (ANCHOR[0] - 0.5) + " " + (ANCHOR[1] - 12) + " " + (ANCHOR[2] + 0.5) + " -90 0");
 			player.setDeltaMovement(0, 0, 0);
 		}));
-		waitTicks(10);
+		// A full second: the game ignores the player's own movement until the teleport is confirmed, and the
+		// climb straight after the last one (still on the rope, higher up) sometimes took longer than half that.
+		waitTicks(20);
 		run(mc -> mc.options.keyUp.setDown(true));
 		waitTicks(60);
 		run(mc -> {

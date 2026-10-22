@@ -783,7 +783,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			command(server, "tp @a " + (anchor[0] - 0.5) + " " + (anchor[1] - 12) + " " + (anchor[2] + 0.5) + " -90 0");
 			player.setDeltaMovement(0, 0, 0);
 		});
-		ctx.waitTicks(10);
+		// A full second: the game ignores the player's own movement until the teleport is confirmed, and the
+		// climb straight after the last one (still on the rope, higher up) sometimes took longer than half that.
+		ctx.waitTicks(20);
 		ctx.getInput().holdKeyFor(options -> options.keyUp, 60);
 		double rose = world.getServer().computeOnServer(server -> player(server).getY() - (anchor[1] - 12));
 		if (gloves) {
