@@ -26,6 +26,8 @@ mountaineer, then take on the temples at the top of the ranges.
   the night, then pack it up.
 - **The wind takes your pearls.** Up high, a thrown ender pearl drifts downwind, so you climb
   instead of pearling past the hard part.
+- **Advancements.** A Summiteer tab of nine milestones, from your first climb above the treeline
+  to a summit whiteout and a pearl blown off course.
 
 See the [changelog](CHANGELOG.md) for the details.
 
@@ -40,7 +42,8 @@ guardian; each one has a simple rule to learn and guards the key to the next. Av
 Vanilla blocks and vanilla-style mobs throughout. Nothing uses a fixed height: the weather and the
 temples follow the mountains, so tall-terrain mods like **Tectonic, Terralith and Amplified worlds**
 just work (the game test runs with Tectonic and with Terralith). Gloves, crampons and goggles go
-in accessory slots, so Summiteer needs **Curios** (NeoForge) or **Trinkets** (Fabric) installed.
+in accessory slots, so Summiteer needs **Curios** (NeoForge) or **Trinkets** (Fabric) installed. On Minecraft 26.3 (`main`),
+Fabric uses **Trinkets Updated** instead.
 
 ## Settings
 
