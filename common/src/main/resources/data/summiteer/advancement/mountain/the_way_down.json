@@ -1,0 +1,28 @@
+{
+  "parent": "summiteer:mountain/root",
+  "criteria": {
+    "the_way_down": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "rope"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "summiteer:rope"
+    },
+    "title": {
+      "translate": "advancements.summiteer.the_way_down.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.the_way_down.description"
+    },
+    "frame": "task"
+  },
+  "requirements": [
+    [
+      "the_way_down"
+    ]
+  ]
+}

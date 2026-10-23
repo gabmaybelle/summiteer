@@ -1,5 +1,8 @@
 package com.gabbymaybelle.summiteer.camp;
 
+import com.gabbymaybelle.summiteer.advancement.Advancements;
+import com.gabbymaybelle.summiteer.zones.Zone;
+import com.gabbymaybelle.summiteer.zones.Zones;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -63,7 +66,12 @@ public class TentBlock extends AbstractBedBlock {
 	@Override
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
 		if (!player.isSecondaryUseActive()) {
-			return super.useWithoutItem(state, level, pos, player, hitResult);
+			InteractionResult result = super.useWithoutItem(state, level, pos, player, hitResult);
+			// "Base camp": asleep in a tent above the treeline.
+			if (!level.isClientSide() && player.isSleeping() && Zones.at(level, pos) != Zone.LOW) {
+				Advancements.fire(player, Advancements.CAMP);
+			}
+			return result;
 		}
 		if (!level.isClientSide()) {
 			pack(level, pos, state, player);

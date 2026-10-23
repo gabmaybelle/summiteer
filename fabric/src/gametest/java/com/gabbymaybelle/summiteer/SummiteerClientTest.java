@@ -25,6 +25,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.sounds.SoundEventListener;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -82,6 +83,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			pearls(ctx, world);
 			cairn(ctx, world);
 			tent(ctx, world);
+			advancements(world);
 		}
 		if (!failures.isEmpty()) {
 			throw new AssertionError(failures.size() + " check(s) failed:\n - " + String.join("\n - ", failures));
@@ -432,6 +434,8 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			command(server, "weather clear");
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, site[0] + 20, site[2] + 20);
 			pearls[0] = throwUp(level, site[0] + 0.5, site[1] + 3, site[2] + 0.5);
+			// Thrown by the player, so "Gone with the wind" is theirs (it is gone before it lands).
+			pearls[0].setOwner(player(server));
 			pearls[1] = throwUp(level, site[0] + 20.5, ground + 2, site[2] + 20.5);
 		});
 		ctx.waitTicks(20);
@@ -467,6 +471,14 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			for (BlockPos pos : cairns) {
 				level.setBlock(pos, Camp.TRAIL_CAIRN_BLOCK.get().defaultBlockState(), Block.UPDATE_ALL);
 			}
+			// One more placed the way a player does, by right-click ("Cairn by cairn"), then taken away.
+			ServerPlayer player = player(server);
+			BlockPos under = new BlockPos(site[0] - 4, site[1], site[2] - 4);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Camp.TRAIL_CAIRN.get()));
+			player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(under), Direction.UP, under, false)));
+			level.destroyBlock(under.above(), false);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 		});
 		// A look at the cairn from three blocks off, then back to the middle.
 		world.getServer().runOnServer(server -> command(server, "tp @a " + (cairns[0].getX() + 0.5) + " " + cairns[0].getY() + " " + (cairns[0].getZ() - 2.5) + " 0 25"));
@@ -516,28 +528,24 @@ public class SummiteerClientTest implements FabricClientGameTest {
 	}
 
 	/**
-	 * The tent, on the low ground 40 blocks from the site, in peaceful (so no monster keeps the
-	 * player awake): placing it makes both halves; right-click sets the respawn there; at midnight
-	 * the player sleeps in it and the night is skipped; sneak-right-click packs it into one tent
-	 * and clears the respawn.
+	 * The tent, on the summit site (so sleeping in it is "Base camp": above the treeline), in
+	 * peaceful (so no monster keeps the player awake), with the wind and cold off: placing it makes
+	 * both halves; right-click sets the respawn there; at midnight the player sleeps in it and the
+	 * night is skipped; sneak-right-click packs it into one tent and clears the respawn.
 	 */
 	private void tent(ClientGameTestContext ctx, TestSingleplayerContext world) {
 		BlockPos[] at = new BlockPos[1];
-		int x = site[0] + 40, z = site[2];
-		// Forty blocks from the player can be past what the game keeps loaded; load it (which takes a
-		// moment) before reading its ground.
-		world.getServer().runOnServer(server -> command(server, "forceload add " + x + " " + z));
-		ctx.waitTicks(20);
-		// Land loaded just now may bring its own animals: clear them off the tent's spot.
-		world.getServer().runOnServer(server -> command(server, "kill @e[type=!minecraft:player]"));
-		ctx.waitTicks(20);
+		int x = site[0] - 6, z = site[2] - 6;
+		Config.wind = false;
+		Config.cold = false;
 		String pitched = world.getServer().computeOnServer(server -> {
 			ServerPlayer player = player(server);
 			ServerLevel level = player.level();
+			command(server, "kill @e[type=!minecraft:player]");
 			command(server, "difficulty peaceful");
 			command(server, "weather clear");
 			command(server, "time set noon");
-			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+			int ground = site[1] + 1;
 			at[0] = new BlockPos(x, ground, z);
 			command(server, "tp @a " + (x + 0.5) + " " + ground + " " + (z - 1.5) + " 0 30");
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Camp.TENTS.get(DyeColor.RED).get()));
@@ -603,10 +611,36 @@ public class SummiteerClientTest implements FabricClientGameTest {
 			command(server, "difficulty normal");
 			command(server, "gamerule advance_time " + clockWasRunning);
 			command(server, "time set noon");
-			command(server, "forceload remove " + at[0].getX() + " " + at[0].getZ());
+			Config.wind = true;
+			Config.cold = true;
 			return result;
 		});
 		check(packed.equals("taken down, 1 carried, respawn cleared"), "tent: sneak-right-click packs it up (" + packed + ")");
+	}
+
+	/**
+	 * The advancements tab, checked at the end, when the test has done everything each one waits
+	 * for: been up high and on a summit in a snowstorm, worn the full outfit, climbed with the ice
+	 * axe, hung a rope, placed a cairn by hand, slept in the tent on the summit, thrown a pearl the
+	 * wind blew.
+	 */
+	private void advancements(TestSingleplayerContext world) {
+		String[] names = { "root", "summit", "into_the_white", "dressed_for_it", "ice_climber", "the_way_down", "cairn_by_cairn", "base_camp", "gone_with_the_wind" };
+		String missing = world.getServer().computeOnServer(server -> {
+			ServerPlayer player = player(server);
+			StringBuilder out = new StringBuilder();
+			for (String name : names) {
+				AdvancementHolder advancement = server.getAdvancements().get(Summiteer.id("mountain/" + name));
+				if (advancement == null) {
+					out.append(name).append(" (not loaded) ");
+				} else if (!player.getAdvancements().getOrStartProgress(advancement).isDone()) {
+					out.append(name).append(' ');
+				}
+			}
+			return out.toString().trim();
+		});
+		Summiteer.LOGGER.info("[test] advancements not earned: {}", missing.isEmpty() ? "none" : missing);
+		check(missing.isEmpty(), "advancements: all nine earned by the end (missing: " + (missing.isEmpty() ? "none" : missing) + ")");
 	}
 
 	/** Right-clicks the tent's head with an empty hand, sneaking or not, the way the game does. */

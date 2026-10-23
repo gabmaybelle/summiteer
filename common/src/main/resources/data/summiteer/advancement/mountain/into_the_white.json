@@ -1,0 +1,28 @@
+{
+  "parent": "summiteer:mountain/summit",
+  "criteria": {
+    "into_the_white": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "whiteout"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "summiteer:snow_goggles"
+    },
+    "title": {
+      "translate": "advancements.summiteer.into_the_white.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.into_the_white.description"
+    },
+    "frame": "goal"
+  },
+  "requirements": [
+    [
+      "into_the_white"
+    ]
+  ]
+}

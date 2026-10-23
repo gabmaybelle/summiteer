@@ -1,0 +1,28 @@
+{
+  "parent": "summiteer:mountain/root",
+  "criteria": {
+    "base_camp": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "camp"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "summiteer:red_tent"
+    },
+    "title": {
+      "translate": "advancements.summiteer.base_camp.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.base_camp.description"
+    },
+    "frame": "goal"
+  },
+  "requirements": [
+    [
+      "base_camp"
+    ]
+  ]
+}

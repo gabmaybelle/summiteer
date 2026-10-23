@@ -1,0 +1,28 @@
+{
+  "parent": "summiteer:mountain/root",
+  "criteria": {
+    "dressed_for_it": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "dressed"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "summiteer:parka"
+    },
+    "title": {
+      "translate": "advancements.summiteer.dressed_for_it.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.dressed_for_it.description"
+    },
+    "frame": "task"
+  },
+  "requirements": [
+    [
+      "dressed_for_it"
+    ]
+  ]
+}

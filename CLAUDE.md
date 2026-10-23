@@ -76,6 +76,13 @@ first, and add this session's row before ending.
   bed rule gives the respawn, the sleep and the night skip (Overworld only; elsewhere it just says
   so instead of exploding); sneak-right-click with an empty hand packs it into one item and clears
   the player's respawn if it was there. Its look is block models (two canvas panels at 45 degrees).
+- **Advancements** (`advancement/`, decided 2026-10-22): a Summiteer tab of nine, data files in
+  `data/summiteer/advancement/mountain/`. One custom trigger, `summiteer:mountain` with an `event`
+  string (`MountainTrigger`); the features fire it through `Advancements.fire` where the moment
+  happens (`Weather.look` for high ground, summit, whiteout and full warmth; `Gear.serverTick` on an
+  ice wall; `RopeItem` on hanging rope; `TentBlock` on sleeping up high; `Weather.driftPearl` once a
+  thrown pearl has drifted 3 blocks). The cairn uses vanilla's `placed_block` trigger. Firing an
+  event a player already has is free: the game skips finished criteria.
 - **Temples and bosses** (planned): three shrines placed on real summits by Summiteer's own
   structure type (it samples the ground under the shrine's footing); each boss is woken by
   ringing the shrine's vanilla bell, has one simple rule (Aether-style) and gets faster below a third

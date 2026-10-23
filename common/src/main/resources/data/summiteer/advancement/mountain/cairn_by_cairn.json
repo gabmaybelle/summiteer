@@ -1,0 +1,31 @@
+{
+  "parent": "summiteer:mountain/the_way_down",
+  "criteria": {
+    "cairn_by_cairn": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": {
+          "type": "minecraft:match_block",
+          "blocks": "summiteer:trail_cairn"
+        }
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "summiteer:trail_cairn"
+    },
+    "title": {
+      "translate": "advancements.summiteer.cairn_by_cairn.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.cairn_by_cairn.description"
+    },
+    "frame": "task"
+  },
+  "requirements": [
+    [
+      "cairn_by_cairn"
+    ]
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "criteria": {
+    "root": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "high"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "summiteer:ice_axe"
+    },
+    "title": {
+      "translate": "advancements.summiteer.root.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.root.description"
+    },
+    "frame": "task",
+    "background": "minecraft:block/packed_ice",
+    "show_toast": false,
+    "announce_to_chat": false
+  },
+  "requirements": [
+    [
+      "root"
+    ]
+  ]
+}

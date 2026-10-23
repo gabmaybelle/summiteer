@@ -1,5 +1,6 @@
 package com.gabbymaybelle.summiteer.rope;
 
+import com.gabbymaybelle.summiteer.advancement.Advancements;
 import com.gabbymaybelle.summiteer.gear.Gear;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
@@ -38,6 +39,7 @@ public class RopeItem extends Gear.Described {
 		int added = Ropes.hang(level, pos, context.getItemInHand(), player.hasInfiniteMaterials());
 		if (added > 0) {
 			level.playSound(null, pos, SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.0F, 0.8F);
+			Advancements.fire(player, Advancements.ROPE);
 		} else {
 			Ropes.tell(player, hanging >= Ropes.MAX_LENGTH ? "rope.full" : "rope.no_room");
 		}

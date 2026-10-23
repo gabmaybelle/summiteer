@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1
+
+A Summiteer advancements tab: nine milestones for your climbs.
+
+- **Summiteer**: climb above the treeline, into the high mountains. The tab opens here.
+- **Summit**: stand at summit height. Then **Into the White**: stand on a summit in a whiteout.
+- **Ice Climber**: climb a wall with an ice axe.
+- **Dressed for It**: wear all the mountain clothes and climbing gloves.
+- **The Way Down**: hang a rope from an anchor. Then **Cairn by Cairn**: place a trail cairn.
+- **Base Camp**: sleep in a tent above the treeline.
+- **Gone with the Wind**: throw an ender pearl that the wind blows off course.
+
 ## 0.2.0
 
 Base camp: ropes to get back down, cairns to find your way, a tent to sleep in, and wind that

@@ -1,6 +1,7 @@
 package com.gabbymaybelle.summiteer.gear;
 
 import com.gabbymaybelle.summiteer.Summiteer;
+import com.gabbymaybelle.summiteer.advancement.Advancements;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.platform.Services;
 import java.util.function.Consumer;
@@ -155,6 +156,9 @@ public final class Gear {
 				continue;
 			}
 			player.resetFallDistance();
+			if (!player.onGround()) {
+				Advancements.fire(player, Advancements.ICE_CLIMB);
+			}
 		}
 	}
 

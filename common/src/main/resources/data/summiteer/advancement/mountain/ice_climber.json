@@ -1,0 +1,28 @@
+{
+  "parent": "summiteer:mountain/root",
+  "criteria": {
+    "ice_climber": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "ice_climb"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:packed_ice"
+    },
+    "title": {
+      "translate": "advancements.summiteer.ice_climber.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.ice_climber.description"
+    },
+    "frame": "task"
+  },
+  "requirements": [
+    [
+      "ice_climber"
+    ]
+  ]
+}

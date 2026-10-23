@@ -1,0 +1,28 @@
+{
+  "parent": "summiteer:mountain/root",
+  "criteria": {
+    "gone_with_the_wind": {
+      "trigger": "summiteer:mountain",
+      "conditions": {
+        "event": "pearl"
+      }
+    }
+  },
+  "display": {
+    "icon": {
+      "id": "minecraft:ender_pearl"
+    },
+    "title": {
+      "translate": "advancements.summiteer.gone_with_the_wind.title"
+    },
+    "description": {
+      "translate": "advancements.summiteer.gone_with_the_wind.description"
+    },
+    "frame": "task"
+  },
+  "requirements": [
+    [
+      "gone_with_the_wind"
+    ]
+  ]
+}

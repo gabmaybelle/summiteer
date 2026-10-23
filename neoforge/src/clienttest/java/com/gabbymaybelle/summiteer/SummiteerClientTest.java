@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.sounds.SoundEventListener;
+import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -124,6 +125,7 @@ final class SummiteerClientTest {
 		pearls();
 		cairn();
 		tent();
+		advancements();
 	}
 
 	private static final BlockPos[] CAIRNS = new BlockPos[2];
@@ -156,6 +158,14 @@ final class SummiteerClientTest {
 			for (BlockPos pos : CAIRNS) {
 				level.setBlock(pos, Camp.TRAIL_CAIRN_BLOCK.get().defaultBlockState(), Block.UPDATE_ALL);
 			}
+			// One more placed the way a player does, by right-click ("Cairn by cairn"), then taken away.
+			ServerPlayer player = player(server);
+			BlockPos under = new BlockPos(SITE_AT[0] - 4, SITE_AT[1], SITE_AT[2] - 4);
+			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Camp.TRAIL_CAIRN.get()));
+			player.getMainHandItem().useOn(new UseOnContext(player, InteractionHand.MAIN_HAND,
+					new BlockHitResult(Vec3.atCenterOf(under), Direction.UP, under, false)));
+			level.destroyBlock(under.above(), false);
+			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 		}));
 		standInTheMiddle();
 		run(mc -> mc.getSoundManager().addListener(CHIME_LISTENER));
@@ -203,27 +213,23 @@ final class SummiteerClientTest {
 	private static final boolean[] CLOCK_WAS_RUNNING = new boolean[1];
 
 	/**
-	 * The tent, on the low ground 40 blocks from the site, in peaceful (so no monster keeps the
-	 * player awake): placing it makes both halves; right-click sets the respawn there; at midnight
-	 * the player sleeps in it and the night is skipped; sneak-right-click packs it into one tent
-	 * and clears the respawn.
+	 * The tent, on the summit site (so sleeping in it is "Base camp": above the treeline), in
+	 * peaceful (so no monster keeps the player awake), with the wind and cold off: placing it makes
+	 * both halves; right-click sets the respawn there; at midnight the player sleeps in it and the
+	 * night is skipped; sneak-right-click packs it into one tent and clears the respawn.
 	 */
 	private static void tent() {
-		// Forty blocks from the player can be past what the game keeps loaded; load it (which takes a
-		// moment) before reading its ground.
-		run(mc -> onServer(mc, server -> serverCommand(server, "forceload add " + (SITE_AT[0] + 40) + " " + SITE_AT[2])));
-		waitTicks(20);
-		// Land loaded just now may bring its own animals: clear them off the tent's spot.
-		run(mc -> onServer(mc, server -> serverCommand(server, "kill @e[type=!minecraft:player]")));
-		waitTicks(20);
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
 			ServerLevel level = player.level();
+			Config.wind = false;
+			Config.cold = false;
+			serverCommand(server, "kill @e[type=!minecraft:player]");
 			serverCommand(server, "difficulty peaceful");
 			serverCommand(server, "weather clear");
 			serverCommand(server, "time set noon");
-			int x = SITE_AT[0] + 40, z = SITE_AT[2];
-			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+			int x = SITE_AT[0] - 6, z = SITE_AT[2] - 6;
+			int ground = SITE_AT[1] + 1;
 			TENT_AT[0] = new BlockPos(x, ground, z);
 			serverCommand(server, "tp @a " + (x + 0.5) + " " + ground + " " + (z - 1.5) + " 0 30");
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Camp.TENTS.get(DyeColor.RED).get()));
@@ -269,13 +275,44 @@ final class SummiteerClientTest {
 			serverCommand(server, "difficulty normal");
 			serverCommand(server, "gamerule advance_time " + CLOCK_WAS_RUNNING[0]);
 			serverCommand(server, "time set noon");
-			serverCommand(server, "forceload remove " + TENT_AT[0].getX() + " " + TENT_AT[0].getZ());
+			Config.wind = true;
+			Config.cold = true;
 		}));
 		run(mc -> {
 			check(TENT_RESULT[0].equals("foot, head, hand empty"), "Tent: placing it didn't pitch both halves (" + TENT_RESULT[0] + ")");
 			check(TENT_RESULT[1].equals("at the tent"), "Tent: right-clicking it didn't set your respawn there (" + TENT_RESULT[1] + ")");
 			check(TENT_RESULT[2].equals("slept, morning"), "Tent: you didn't sleep the night away in it (" + TENT_RESULT[2] + ")");
 			check(TENT_RESULT[3].equals("taken down, 1 carried, respawn cleared"), "Tent: sneak-right-click didn't pack it up (" + TENT_RESULT[3] + ")");
+		});
+	}
+
+	private static final String[] MISSING_ADVANCEMENTS = new String[1];
+
+	/**
+	 * The advancements tab, checked at the end, when the test has done everything each one waits
+	 * for: been up high and on a summit in a snowstorm, worn the full outfit, climbed with the ice
+	 * axe, hung a rope, placed a cairn by hand, slept in the tent on the summit, thrown a pearl the
+	 * wind blew.
+	 */
+	private static void advancements() {
+		String[] names = { "root", "summit", "into_the_white", "dressed_for_it", "ice_climber", "the_way_down", "cairn_by_cairn", "base_camp", "gone_with_the_wind" };
+		run(mc -> onServer(mc, server -> {
+			ServerPlayer player = player(server);
+			StringBuilder out = new StringBuilder();
+			for (String name : names) {
+				AdvancementHolder advancement = server.getAdvancements().get(Summiteer.id("mountain/" + name));
+				if (advancement == null) {
+					out.append(name).append(" (not loaded) ");
+				} else if (!player.getAdvancements().getOrStartProgress(advancement).isDone()) {
+					out.append(name).append(' ');
+				}
+			}
+			MISSING_ADVANCEMENTS[0] = out.toString().trim();
+		}));
+		run(mc -> {
+			String missing = MISSING_ADVANCEMENTS[0].isEmpty() ? "none" : MISSING_ADVANCEMENTS[0];
+			Summiteer.LOGGER.info("[test] advancements not earned: {}", missing);
+			check(MISSING_ADVANCEMENTS[0].isEmpty(), "Advancements: not all nine earned by the end (missing: " + missing + ")");
 		});
 	}
 
@@ -301,6 +338,8 @@ final class SummiteerClientTest {
 			serverCommand(server, "weather clear");
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, SITE_AT[0] + 20, SITE_AT[2] + 20);
 			PEARLS[0] = throwUp(level, SITE_AT[0] + 0.5, SITE_AT[1] + 3, SITE_AT[2] + 0.5);
+			// Thrown by the player, so "Gone with the wind" is theirs (it is gone before it lands).
+			PEARLS[0].setOwner(player(server));
 			PEARLS[1] = throwUp(level, SITE_AT[0] + 20.5, ground + 2, SITE_AT[2] + 20.5);
 		}));
 		waitTicks(20);

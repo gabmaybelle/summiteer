@@ -1,6 +1,7 @@
 package com.gabbymaybelle.summiteer.weather;
 
 import com.gabbymaybelle.summiteer.Config;
+import com.gabbymaybelle.summiteer.advancement.Advancements;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.zones.Zone;
@@ -10,6 +11,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
@@ -19,6 +21,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.CampfireBlock;
@@ -79,6 +83,7 @@ public final class Weather {
 		Zone zone = Zones.at(level, pos);
 		boolean sheltered = isSheltered(level, player);
 		boolean storm = isSnowingAt(level, pos);
+		mountainMoments(player, zone, storm && !sheltered);
 
 		if (!Config.wind || zone == Zone.LOW || sheltered) {
 			GUSTS.remove(id);
@@ -95,6 +100,25 @@ public final class Weather {
 			FREEZING.put(id, Cold.perSecond(Clothes.warmth(player)));
 		} else {
 			FREEZING.remove(id);
+		}
+	}
+
+	/**
+	 * The advancements this once-a-second look can tell: above the treeline, on a summit, in a
+	 * whiteout there (the fog's rule: a summit snowstorm falling on you), and dressed in full warmth.
+	 */
+	private static void mountainMoments(ServerPlayer player, Zone zone, boolean snowingOnYou) {
+		if (zone != Zone.LOW) {
+			Advancements.fire(player, Advancements.HIGH);
+		}
+		if (zone == Zone.SUMMIT) {
+			Advancements.fire(player, Advancements.SUMMIT);
+			if (Config.whiteouts && snowingOnYou) {
+				Advancements.fire(player, Advancements.WHITEOUT);
+			}
+		}
+		if (Clothes.warmth(player) >= Cold.FULL_WARMTH) {
+			Advancements.fire(player, Advancements.DRESSED);
 		}
 	}
 
@@ -181,6 +205,25 @@ public final class Weather {
 		if (drift > 0) {
 			double angle = Wind.direction(level.getGameTime());
 			pearl.setDeltaMovement(pearl.getDeltaMovement().add(Math.cos(angle) * drift, 0, Math.sin(angle) * drift));
+			if (!level.isClientSide()) {
+				countDrift(pearl, drift);
+			}
+		}
+	}
+
+	/** How far off course a pearl must be blown for "Gone with the wind", in blocks. */
+	static final double PEARL_OFF_COURSE = 3.0;
+	/** Each pearl in flight: the sideways speed the wind has given it, and how far that has carried it. */
+	private static final Map<Entity, double[]> PEARL_DRIFT = new WeakHashMap<>();
+
+	/** Adds up a pearl's drift; once its thrower's pearl is blown far enough off course, they get the advancement. */
+	private static void countDrift(Entity pearl, double drift) {
+		double[] speedAndDistance = PEARL_DRIFT.computeIfAbsent(pearl, p -> new double[2]);
+		speedAndDistance[0] += drift;
+		speedAndDistance[1] += speedAndDistance[0];
+		if (speedAndDistance[1] >= PEARL_OFF_COURSE && pearl instanceof Projectile projectile && projectile.getOwner() instanceof Player thrower) {
+			Advancements.fire(thrower, Advancements.PEARL);
+			PEARL_DRIFT.remove(pearl);
 		}
 	}
 

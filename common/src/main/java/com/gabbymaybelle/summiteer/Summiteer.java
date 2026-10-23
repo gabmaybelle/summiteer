@@ -1,5 +1,6 @@
 package com.gabbymaybelle.summiteer;
 
+import com.gabbymaybelle.summiteer.advancement.Advancements;
 import com.gabbymaybelle.summiteer.camp.Camp;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.gear.Gear;
@@ -29,6 +30,7 @@ public final class Summiteer {
 		Gear.init();
 		Ropes.init();
 		Camp.init();
+		Advancements.init();
 		LOGGER.info("Summiteer: ready on {} (high ground from {} blocks above sea level, summits from {})",
 				Services.PLATFORM.name(), Config.highAboveSeaLevel, Config.summitAboveSeaLevel);
 	}
