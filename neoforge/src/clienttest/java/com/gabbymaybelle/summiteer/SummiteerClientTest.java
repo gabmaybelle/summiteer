@@ -72,6 +72,12 @@ final class SummiteerClientTest {
 		run(mc -> settingsFile());
 		createWorld("summiteer-clienttest");
 		run(mc -> check(ModList.get().isLoaded(Summiteer.MOD_ID), "The mod isn't loaded"));
+		// A flat grass world comes with sheep, cows and pigs, and one wandering into a climb shoves the
+		// player off the rope (seen on CI): no animals, and none spawning.
+		run(mc -> onServer(mc, server -> {
+			serverCommand(server, "gamerule spawn_mobs false");
+			serverCommand(server, "kill @e[type=!minecraft:player]");
+		}));
 
 		// Zones: a column each of stony peaks, snowy slopes and plains beside the player, then each
 		// height asked. Peaks are high at any height; slopes only above the treeline.
@@ -207,6 +213,9 @@ final class SummiteerClientTest {
 		// moment) before reading its ground.
 		run(mc -> onServer(mc, server -> serverCommand(server, "forceload add " + (SITE_AT[0] + 40) + " " + SITE_AT[2])));
 		waitTicks(20);
+		// Land loaded just now may bring its own animals: clear them off the tent's spot.
+		run(mc -> onServer(mc, server -> serverCommand(server, "kill @e[type=!minecraft:player]")));
+		waitTicks(20);
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
 			ServerLevel level = player.level();
@@ -332,6 +341,7 @@ final class SummiteerClientTest {
 	 */
 	private static void rope() {
 		run(mc -> onServer(mc, server -> {
+			serverCommand(server, "kill @e[type=!minecraft:player]");
 			Config.wind = false;
 			Config.cold = false;
 			ServerLevel level = player(server).level();

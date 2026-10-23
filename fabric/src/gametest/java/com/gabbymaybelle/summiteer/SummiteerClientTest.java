@@ -67,6 +67,11 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getConnection().waitForChunksRender();
 			boolean loaded = world.getServer().computeOnServer(server -> FabricLoader.getInstance().isModLoaded(Summiteer.MOD_ID));
+			// No animals wandering into the climbs, and none spawning.
+			world.getServer().runOnServer(server -> {
+				command(server, "gamerule spawn_mobs false");
+				command(server, "kill @e[type=!minecraft:player]");
+			});
 			check(loaded, "the mod is loaded in a new world");
 			zones(world);
 			wind(ctx, world);
@@ -523,6 +528,9 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		// moment) before reading its ground.
 		world.getServer().runOnServer(server -> command(server, "forceload add " + x + " " + z));
 		ctx.waitTicks(20);
+		// Land loaded just now may bring its own animals: clear them off the tent's spot.
+		world.getServer().runOnServer(server -> command(server, "kill @e[type=!minecraft:player]"));
+		ctx.waitTicks(20);
 		String pitched = world.getServer().computeOnServer(server -> {
 			ServerPlayer player = player(server);
 			ServerLevel level = player.level();
@@ -633,6 +641,7 @@ public class SummiteerClientTest implements FabricClientGameTest {
 		Config.wind = false;
 		Config.cold = false;
 		world.getServer().runOnServer(server -> {
+			command(server, "kill @e[type=!minecraft:player]");
 			ServerLevel level = player(server).level();
 			int x = site[0] + 30, z = site[2];
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x - 1, z) - 1;
