@@ -1,6 +1,6 @@
 # Summiteer
 
-A Fabric and NeoForge mod for Minecraft 26.3. **Mountains worth climbing.**
+A Fabric and NeoForge mod for Minecraft 26.3 and 1.21.1. **Mountains worth climbing.**
 
 **Download:** [CurseForge](https://www.curseforge.com/minecraft/mc-mods/summiteer) · [GitHub releases](https://github.com/gabmaybelle/summiteer/releases) · **Watch:** [the Short](https://youtube.com/shorts/cKlttX2ZECA)
 
@@ -26,6 +26,8 @@ mountaineer, then take on the temples at the top of the ranges.
   the night, then pack it up.
 - **The wind takes your pearls.** Up high, a thrown ender pearl drifts downwind, so you climb
   instead of pearling past the hard part.
+- **Advancements.** A Summiteer tab of nine milestones, from your first climb above the treeline
+  to a summit whiteout and a pearl blown off course.
 
 See the [changelog](CHANGELOG.md) for the details.
 
@@ -40,7 +42,8 @@ guardian; each one has a simple rule to learn and guards the key to the next. Av
 Vanilla blocks and vanilla-style mobs throughout. Nothing uses a fixed height: the weather and the
 temples follow the mountains, so tall-terrain mods like **Tectonic, Terralith and Amplified worlds**
 just work (the game test runs with Tectonic and with Terralith). Gloves, crampons and goggles go
-in accessory slots, so Summiteer needs **Curios** (NeoForge) or **Trinkets Updated** (Fabric) installed.
+in accessory slots, so Summiteer needs **Curios** (NeoForge) or, on Fabric, **Trinkets Updated** (26.3) or
+**Trinkets** (1.21.1) installed. The 1.21.1 version lives on the `1.21.1` branch.
 
 ## Settings
 
