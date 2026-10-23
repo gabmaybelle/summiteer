@@ -2,15 +2,22 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "key": {
-    "I": "minecraft:iron_ingot",
-    "N": "minecraft:iron_nugget",
-    "S": "minecraft:string"
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "N": {
+      "item": "minecraft:iron_nugget"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
   },
   "pattern": [
     "SIS",
     "N N"
   ],
   "result": {
-    "id": "summiteer:crampons"
+    "id": "summiteer:crampons",
+    "count": 1
   }
 }

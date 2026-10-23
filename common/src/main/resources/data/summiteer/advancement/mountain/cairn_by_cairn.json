@@ -4,10 +4,12 @@
     "cairn_by_cairn": {
       "trigger": "minecraft:placed_block",
       "conditions": {
-        "location": {
-          "type": "minecraft:match_block",
-          "blocks": "summiteer:trail_cairn"
-        }
+        "location": [
+          {
+            "condition": "minecraft:block_state_property",
+            "block": "summiteer:trail_cairn"
+          }
+        ]
       }
     }
   },

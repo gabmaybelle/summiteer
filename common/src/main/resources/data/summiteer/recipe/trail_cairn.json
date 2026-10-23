@@ -2,10 +2,18 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    "#minecraft:stone_crafting_materials",
-    "#minecraft:stone_crafting_materials",
-    "#minecraft:stone_crafting_materials",
-    "minecraft:torch"
+    {
+      "tag": "minecraft:stone_crafting_materials"
+    },
+    {
+      "tag": "minecraft:stone_crafting_materials"
+    },
+    {
+      "tag": "minecraft:stone_crafting_materials"
+    },
+    {
+      "item": "minecraft:torch"
+    }
   ],
   "result": {
     "count": 2,

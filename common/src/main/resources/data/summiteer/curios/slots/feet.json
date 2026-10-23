@@ -1,0 +1,7 @@
+{
+  "order": 150,
+  "icon": "summiteer:slot/empty_feet_slot",
+  "validators": [
+    "curios:tag"
+  ]
+}

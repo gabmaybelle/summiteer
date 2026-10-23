@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1+1.21.1
+
+Summiteer on Minecraft 1.21.1, for Fabric and NeoForge: everything in 0.2.1 below, the
+advancements tab included.
+
+- On Fabric it needs **Trinkets** (Trinkets Updated is for newer Minecraft); on NeoForge, **Curios**.
+  Curios on 1.21.1 has no feet slot of its own, so Summiteer adds one for the crampons.
+- Dyeing the wool clothes uses the same recipe as leather armour: put the piece in the crafting grid
+  with any dyes.
+
 ## 0.2.1
 
 A Summiteer advancements tab: nine milestones for your climbs.

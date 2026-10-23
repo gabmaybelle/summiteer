@@ -2,15 +2,22 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "key": {
-    "L": "minecraft:leather",
-    "W": "#minecraft:wool",
-    "S": "minecraft:string"
+    "L": {
+      "item": "minecraft:leather"
+    },
+    "W": {
+      "tag": "minecraft:wool"
+    },
+    "S": {
+      "item": "minecraft:string"
+    }
   },
   "pattern": [
     "L L",
     "WSW"
   ],
   "result": {
-    "id": "summiteer:climbing_gloves"
+    "id": "summiteer:climbing_gloves",
+    "count": 1
   }
 }

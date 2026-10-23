@@ -5,7 +5,10 @@
 	"name": "Summiteer game tests",
 	"environment": "*",
 	"entrypoints": {
-		"fabric-client-gametest": [
+		"client": [
+			"com.gabbymaybelle.summiteer.harness.GameTestRunner"
+		],
+		"summiteer:gametest": [
 			"com.gabbymaybelle.summiteer.SummiteerClientTest"
 		]
 	},

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:green_tent"
+        "recipe": "summiteer:green_tent"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

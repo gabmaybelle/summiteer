@@ -2,13 +2,18 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "key": {
-    "G": "minecraft:glass_pane",
-    "L": "minecraft:leather"
+    "G": {
+      "item": "minecraft:glass_pane"
+    },
+    "L": {
+      "item": "minecraft:leather"
+    }
   },
   "pattern": [
     "GLG"
   ],
   "result": {
-    "id": "summiteer:snow_goggles"
+    "id": "summiteer:snow_goggles",
+    "count": 1
   }
 }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:snow_pants"
+        "recipe": "summiteer:snow_pants"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

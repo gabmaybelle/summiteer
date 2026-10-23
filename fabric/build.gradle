@@ -1,5 +1,10 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'fabric-loom' version "${loom_version}"
+}
+
+repositories {
+	// Trinkets' own library (Cardinal Components), which it needs on the classpath.
+	maven { url = 'https://maven.ladysnake.org/releases' }
 }
 
 // The common sources are compiled straight into this jar (no common jar to bundle), so the
@@ -10,6 +15,10 @@ sourceSets.main {
 }
 
 loom {
+	// Named for this mod: the default, fabric-refmap.json, would clash with any other mod built the same way.
+	mixin {
+		defaultRefmapName = "summiteer-refmap.json"
+	}
 	mods {
 		"summiteer" {
 			sourceSet sourceSets.main
@@ -19,23 +28,32 @@ loom {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-	// Required: the climbing gloves, goggles and crampons go in Trinkets Updated's slots. Players install it themselves.
-	implementation "maven.modrinth:trinkets-updated:${project.trinkets_updated_version}"
+	// 1.21.1 ships obfuscated: the code is written in the official Mojang names and Loom remaps.
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	// Required: the climbing gloves, goggles and crampons go in Trinkets' slots. Players install it themselves.
+	modImplementation "maven.modrinth:trinkets:${project.trinkets_version}"
+	// Trinkets carries its library (Cardinal Components) inside its jar, which a dev run doesn't
+	// unpack; the code needs it to compile and the game test needs it to run.
+	modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-base:6.1.0"
+	modImplementation "org.ladysnake.cardinal-components-api:cardinal-components-entity:6.1.0"
 
 	// Tall-terrain runs: `./gradlew :fabric:runClientGameTest -PtestTectonic` (or -PtestTerralith)
 	// plays the in-game test with that mod installed, fetched from Modrinth's maven by version id.
 	// Nothing here is bundled or required.
-	// Both terrain mods need the Lithostitched worldgen library.
+	// Both terrain mods need the Lithostitched worldgen library (and, on Fabric, AppoLib).
 	if (project.hasProperty("testTectonic") || project.hasProperty("testTerralith")) {
-		runtimeOnly "maven.modrinth:lithostitched:${project.lithostitched_fabric_version}"
+		modLocalRuntime "maven.modrinth:lithostitched:${project.lithostitched_fabric_version}"
+		modLocalRuntime "maven.modrinth:apollib:${project.apollib_fabric_version}"
+		// Carried inside AppoLib's jar, which a dev run doesn't unpack.
+		localRuntime "de.marhali:json5-java:3.0.0"
 	}
 	if (project.hasProperty("testTectonic")) {
-		runtimeOnly "maven.modrinth:tectonic:${project.tectonic_fabric_version}"
+		modLocalRuntime "maven.modrinth:tectonic:${project.tectonic_fabric_version}"
 	}
 	if (project.hasProperty("testTerralith")) {
-		runtimeOnly "maven.modrinth:terralith:${project.terralith_fabric_version}"
+		modLocalRuntime "maven.modrinth:terralith:${project.terralith_fabric_version}"
 	}
 }
 
@@ -48,17 +66,46 @@ processResources {
 	}
 }
 
-tasks.named('jar') { archiveBaseName = "${rootProject.name}-fabric" }
-tasks.named('sourcesJar') { archiveBaseName = "${rootProject.name}-fabric" }
-
 // Client game tests: `./gradlew :fabric:runClientGameTest` starts a real game and plays through
-// the checks in src/gametest. Nothing there ships in the jar.
-fabricApi {
-	configureTests {
-		createSourceSet = true
-		modId = "summiteer_gametest"
-		enableGameTests = false
-		enableClientGameTests = true
-		eula = true
+// the checks in src/gametest. Nothing there ships in the jar. Fabric's client game test API
+// doesn't exist for 1.21.1, so the harness is the test's own (src/gametest/.../harness) and the
+// run is a plain client run with the test source set as a second mod.
+sourceSets {
+	gametest {
+		compileClasspath += sourceSets.main.compileClasspath + sourceSets.main.output
+		runtimeClasspath += sourceSets.main.runtimeClasspath + sourceSets.main.output
 	}
 }
+
+loom {
+	mods {
+		"summiteer_gametest" {
+			sourceSet sourceSets.gametest
+		}
+	}
+	runs {
+		clientGameTest {
+			client()
+			name = "Client Game Test"
+			source sourceSets.gametest
+			runDir "build/run/clientGameTest"
+			property "summiteer.gametest", "true"
+			programArgs "--width", "854", "--height", "480"
+			ideConfigGenerated false
+		}
+	}
+}
+
+// Every run starts from the default settings file, as a new player's would.
+def gameTestConfig = file('build/run/clientGameTest/config')
+tasks.matching { it.name == 'runClientGameTest' }.configureEach {
+	doFirst {
+		delete new File(gameTestConfig, 'summiteer.properties')
+	}
+}
+
+// summiteer-fabric-<version>.jar, the name players download.
+tasks.named('jar') { archiveBaseName = "${rootProject.name}-fabric" }
+tasks.named('sourcesJar') { archiveBaseName = "${rootProject.name}-fabric" }
+tasks.named('remapJar') { archiveBaseName = "${rootProject.name}-fabric" }
+tasks.named('remapSourcesJar') { archiveBaseName = "${rootProject.name}-fabric" }

@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:pink_tent"
+        "recipe": "summiteer:pink_tent"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

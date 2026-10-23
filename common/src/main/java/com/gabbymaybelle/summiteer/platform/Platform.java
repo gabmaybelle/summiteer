@@ -4,7 +4,7 @@ import java.nio.file.Path;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import net.minecraft.core.Registry;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CreativeModeTab;
@@ -31,7 +31,7 @@ public interface Platform {
 	 * waits for its registry event, so the result is a supplier that is only valid once the game
 	 * has finished loading.
 	 */
-	<T> Supplier<T> register(ResourceKey<? extends Registry<T>> registry, Identifier id, Supplier<T> factory);
+	<T> Supplier<T> register(ResourceKey<? extends Registry<T>> registry, ResourceLocation id, Supplier<T> factory);
 
 	/** Puts an item in one of the vanilla creative tabs. */
 	void addToCreativeTab(ResourceKey<CreativeModeTab> tab, Supplier<? extends ItemLike> item);

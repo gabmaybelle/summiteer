@@ -4,7 +4,7 @@ import com.gabbymaybelle.summiteer.Summiteer;
 import com.gabbymaybelle.summiteer.advancement.Advancements;
 import com.gabbymaybelle.summiteer.clothes.Clothes;
 import com.gabbymaybelle.summiteer.platform.Services;
-import java.util.function.Consumer;
+import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
@@ -14,7 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,15 +23,15 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ToolMaterial;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.item.Tiers;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -65,7 +65,8 @@ public final class Gear {
 	public static final Supplier<Item> CRAMPONS = item("crampons", properties -> properties.stacksTo(1),
 			properties -> new Accessory(properties, SoundEvents.ARMOR_EQUIP_CHAIN));
 	/** An iron pickaxe with a sharper edge: 5 damage at 1.4 attacks a second (the pickaxe does 4 at 1.2). */
-	public static final Supplier<Item> ICE_AXE = item("ice_axe", properties -> properties.pickaxe(ToolMaterial.IRON, 2.0F, -2.6F), Described::new);
+	public static final Supplier<Item> ICE_AXE = item("ice_axe", properties -> properties.attributes(PickaxeItem.createAttributes(Tiers.IRON, 2.0F, -2.6F)),
+			IceAxe::new);
 
 	private static final ResourceKey<CreativeModeTab> COMBAT_TAB = vanillaTab("combat");
 	private static final ResourceKey<CreativeModeTab> TOOLS_TAB = vanillaTab("tools_and_utilities");
@@ -163,14 +164,12 @@ public final class Gear {
 	}
 
 	private static ResourceKey<CreativeModeTab> vanillaTab(String name) {
-		return ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace(name));
+		return ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.withDefaultNamespace(name));
 	}
 
 	/** The properties are only built inside the registration (see {@code Clothes.item}). */
 	private static Supplier<Item> item(String name, Function<Item.Properties, Item.Properties> properties, Function<Item.Properties, Item> kind) {
-		Identifier id = Summiteer.id(name);
-		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.apply(new Item.Properties()).setId(key)));
+		return Services.PLATFORM.register(Registries.ITEM, Summiteer.id(name), () -> kind.apply(properties.apply(new Item.Properties())));
 	}
 
 	/** An item with a grey line under its name saying what it does ({@code item.summiteer.<name>.desc}). */
@@ -181,8 +180,21 @@ public final class Gear {
 
 		@Override
 		@SuppressWarnings("deprecation") // Mojang's marker for "override, don't call"; vanilla's items do the same.
-		public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-			builder.accept(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+		public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+			lines.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+		}
+	}
+
+	/** The ice axe: an iron pickaxe, with its line saying what it does. */
+	public static class IceAxe extends PickaxeItem {
+		public IceAxe(Item.Properties properties) {
+			super(Tiers.IRON, properties);
+		}
+
+		@Override
+		@SuppressWarnings("deprecation")
+		public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+			lines.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
 		}
 	}
 
@@ -199,18 +211,18 @@ public final class Gear {
 		}
 
 		@Override
-		public InteractionResult use(Level level, Player player, InteractionHand hand) {
-			if (level.isClientSide()) {
-				return InteractionResult.SUCCESS;
-			}
+		public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
 			ItemStack held = player.getItemInHand(hand);
+			if (level.isClientSide()) {
+				return InteractionResultHolder.success(held);
+			}
 			ItemStack previous = Services.PLATFORM.equipAccessory(player, held.copy());
 			if (previous == null) {
-				return InteractionResult.PASS;
+				return InteractionResultHolder.pass(held);
 			}
 			player.setItemInHand(hand, previous);
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), sound, player.getSoundSource(), 1.0F, 1.0F);
-			return InteractionResult.SUCCESS_SERVER;
+			return InteractionResultHolder.success(previous);
 		}
 	}
 }

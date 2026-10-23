@@ -1,6 +1,9 @@
 # Summiteer
 
-A Fabric and NeoForge mod for Minecraft 26.3 (mod ID `summiteer`): mountains worth climbing. Above
+A Fabric and NeoForge mod (mod ID `summiteer`): mountains worth climbing. **This is the `1.21.1`
+branch** (Minecraft 1.21.1, Java 21, versions `<v>+1.21.1`); `main` is Minecraft 26.3. A change
+that belongs on both is made on `main` first and ported here by hand (see "What 1.21.1 does
+differently" below). Above
 the treeline the weather fights back (wind, cold, whiteouts, avalanches), players gear up like real
 mountaineers (clothes, gloves, crampons, an ice axe, ropes and anchors, goggles, trail cairns, a base
 camp tent), and three mountain temples each hold a boss guarding the key to the next. Vanilla-like:
@@ -89,6 +92,33 @@ first, and add this session's row before ending.
   of its health. Stone shrine: the Cairn (stunned when it rolls into a wall). Frost shrine: the Old Ram
   (its ice breaks only to fire). Summit shrine: the Gale (can only be hit when it lands). Each drops the
   key to the next shrine's locked door.
+
+## What 1.21.1 does differently (ported 2026-10-23)
+
+- **Toolchain:** the game ships obfuscated: the code uses Mojang's names and Loom remaps the Fabric
+  jar (`fabric-loom` with `officialMojangMappings()`; NeoForge runs on Mojang names already).
+  Fabric's client game test API doesn't exist for 1.21.1, so `fabric/src/gametest/.../harness` is
+  a small stand-in with the same shape (copied from Pocket List's 1.21.1 branch).
+- **Slot mods:** Trinkets 3.10 on Fabric (its Cardinal Components library is on the compile and
+  dev-run classpath; players get it inside Trinkets' jar) and Curios 9 on NeoForge. Curios 9 has no
+  `feet` slot, so `data/summiteer/curios/slots/feet.json` adds one (icon: vanilla's empty boots).
+- **Clothes:** `ArmorItem` with a `Holder.direct` wool `ArmorMaterial` (one dyeable layer,
+  `textures/models/armor/wool_layer_1/2`). Vanilla colours undyed dyeable armour leather-brown, so
+  Fabric's `HumanoidArmorLayerMixin` and NeoForge's `IClientItemExtensions.getDefaultDyeColor` make
+  it cream (`Clothes.UNDYED`). Item tints are registered in code (`WornGear.tint`). Dyeing is
+  vanilla's armour dye recipe, through `#minecraft:dyeable`.
+- **Worn gear:** 1.21.1 item models can't pick a model by display context, so the worn models are
+  loaded as extra models (Fabric `ModelLoadingPlugin`, NeoForge `ModelEvent.RegisterAdditional`) and
+  drawn by `client/WornGear` from Trinkets' and Curios' renderers.
+- **Tent:** extends `BedBlock` (no block entity, plain block models); outside the Overworld it says
+  no instead of exploding. Its item model lays both halves out like vanilla's bed item.
+- **Fog:** `FogRendererMixin` adjusts `RenderSystem`'s fog distances at the end of `setupFog`
+  (the fade moves on the terrain pass) and the fog colour at the end of `setupColor`.
+- **Crampons:** vanilla reads block friction with `Block.getFriction()` in `travel`; NeoForge with
+  its own `BlockState.getFriction(level, pos, entity)`: one `@ModifyExpressionValue` each, `require = 0`.
+- **Data:** recipe ingredients are `{"item"}`/`{"tag"}` objects, loot and advancement conditions are
+  `conditions` lists with `block_state_property`, `recipe_unlocked` takes `recipe`, and an
+  advancement background is a full texture path. No per-item dye recipes.
 
 ## Layout
 
@@ -187,7 +217,9 @@ or test names. Check the diff for these before every push.
   go in the CHANGELOG's newest section.
 - Keep the credit line: "made by Gabby with help from Claude, an AI assistant".
 - Gabby publishes on Modrinth herself. Don't upload anything there.
-**Minecraft.** Fabric and NeoForge (Mojang names; Loom 1.18.4, ModDevGradle 2.0, Java 25).
+**Minecraft.** This branch: Minecraft 1.21.1 (Mojang names through Loom's official mappings; Loom
+1.18.4 run by Java 25, code compiled for Java 21; NeoForge 21.1 through ModDevGradle). On `main`:
+Fabric and NeoForge (Mojang names; Loom 1.18.4, ModDevGradle 2.0, Java 25).
 `main` is the newest Minecraft (26.3), the only line until 0.1.0 is out and has been played. Then
 1.21.1 (Fabric + NeoForge) gets its own branch; 1.20.1 (Fabric only: no Forge build) only if
 players ask. Behaviour changes land on `main` first.

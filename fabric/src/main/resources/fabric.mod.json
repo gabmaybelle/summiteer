@@ -18,16 +18,20 @@
 	"entrypoints": {
 		"main": [
 			"com.gabbymaybelle.summiteer.fabric.SummiteerFabric"
+		],
+		"client": [
+			"com.gabbymaybelle.summiteer.fabric.SummiteerFabricClient"
 		]
 	},
 	"mixins": [
-		"summiteer.mixins.json"
+		"summiteer.mixins.json",
+		"summiteer-fabric.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.19.5",
+		"fabricloader": ">=0.16.0",
 		"fabric-api": "*",
-		"trinkets_updated": ">=4.2.1",
-		"minecraft": "~26.3",
-		"java": ">=25"
+		"trinkets": ">=3.10.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21"
 	}
 }

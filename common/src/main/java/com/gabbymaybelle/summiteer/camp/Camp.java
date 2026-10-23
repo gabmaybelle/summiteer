@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeColor;
@@ -26,8 +26,8 @@ import net.minecraft.world.level.material.PushReaction;
 public final class Camp {
 	public static final Supplier<Block> TRAIL_CAIRN_BLOCK = block("trail_cairn", properties -> properties
 			.mapColor(MapColor.STONE).strength(1.0F).sound(SoundType.STONE).noOcclusion().lightLevel(state -> 7)
-			.pushReaction(PushReaction.POPPED), TrailCairnBlock::new);
-	public static final Supplier<Item> TRAIL_CAIRN = item("trail_cairn", Item.Properties::useBlockDescriptionPrefix,
+			.pushReaction(PushReaction.DESTROY), TrailCairnBlock::new);
+	public static final Supplier<Item> TRAIL_CAIRN = item("trail_cairn", properties -> properties,
 			properties -> new Ropes.DescribedBlockItem(TRAIL_CAIRN_BLOCK.get(), properties));
 
 	/** The tents, one block (and item) per wool colour: {@code summiteer:red_tent} and so on. */
@@ -39,14 +39,14 @@ public final class Camp {
 			String name = colour.getName() + "_tent";
 			Supplier<Block> tent = block(name, properties -> properties
 					.mapColor(colour.getMapColor()).strength(0.2F).sound(SoundType.WOOL).noOcclusion()
-					.ignitedByLava().pushReaction(PushReaction.POPPED), properties -> new TentBlock(colour, properties));
+					.ignitedByLava().pushReaction(PushReaction.DESTROY), properties -> new TentBlock(colour, properties));
 			TENT_BLOCKS.put(colour, tent);
-			TENTS.put(colour, item(name, properties -> properties.stacksTo(1).useBlockDescriptionPrefix(),
+			TENTS.put(colour, item(name, properties -> properties.stacksTo(1),
 					properties -> new Ropes.DescribedBlockItem(tent.get(), properties)));
 		}
 	}
 
-	private static final ResourceKey<CreativeModeTab> TOOLS_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("tools_and_utilities"));
+	private static final ResourceKey<CreativeModeTab> TOOLS_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.withDefaultNamespace("tools_and_utilities"));
 
 	private Camp() {
 	}
@@ -60,15 +60,15 @@ public final class Camp {
 	}
 
 	private static Supplier<Block> block(String name, Function<BlockBehaviour.Properties, BlockBehaviour.Properties> properties, Function<BlockBehaviour.Properties, Block> kind) {
-		Identifier id = Summiteer.id(name);
+		ResourceLocation id = Summiteer.id(name);
 		ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, id);
-		return Services.PLATFORM.register(Registries.BLOCK, id, () -> kind.apply(properties.apply(BlockBehaviour.Properties.of()).setId(key)));
+		return Services.PLATFORM.register(Registries.BLOCK, id, () -> kind.apply(properties.apply(BlockBehaviour.Properties.of())));
 	}
 
 	/** The properties are only built inside the registration (see {@code Clothes.item}). */
 	private static Supplier<Item> item(String name, Function<Item.Properties, Item.Properties> properties, Function<Item.Properties, Item> kind) {
-		Identifier id = Summiteer.id(name);
+		ResourceLocation id = Summiteer.id(name);
 		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.apply(new Item.Properties()).setId(key)));
+		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.apply(new Item.Properties())));
 	}
 }

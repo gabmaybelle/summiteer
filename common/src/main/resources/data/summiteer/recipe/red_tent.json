@@ -3,14 +3,19 @@
   "category": "misc",
   "group": "tent",
   "key": {
-    "W": "minecraft:red_wool",
-    "S": "minecraft:stick"
+    "W": {
+      "item": "minecraft:red_wool"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
   },
   "pattern": [
     "WWW",
     "SSS"
   ],
   "result": {
-    "id": "summiteer:red_tent"
+    "id": "summiteer:red_tent",
+    "count": 1
   }
 }

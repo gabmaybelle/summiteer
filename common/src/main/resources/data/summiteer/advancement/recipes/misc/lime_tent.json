@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:lime_tent"
+        "recipe": "summiteer:lime_tent"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

@@ -5,7 +5,7 @@ import com.gabbymaybelle.summiteer.Summiteer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.Level;
@@ -21,8 +21,8 @@ import net.minecraft.world.level.biome.Biome;
  * counts in any biome, so a peak whose biome isn't tagged still gets its summit.
  */
 public final class Zones {
-	public static final TagKey<Biome> C_IS_MOUNTAIN = TagKey.create(Registries.BIOME, Identifier.fromNamespaceAndPath("c", "is_mountain"));
-	public static final TagKey<Biome> ABOVE_TREELINE = TagKey.create(Registries.BIOME, Identifier.fromNamespaceAndPath(Summiteer.MOD_ID, "above_treeline"));
+	public static final TagKey<Biome> C_IS_MOUNTAIN = TagKey.create(Registries.BIOME, ResourceLocation.fromNamespaceAndPath("c", "is_mountain"));
+	public static final TagKey<Biome> ABOVE_TREELINE = TagKey.create(Registries.BIOME, ResourceLocation.fromNamespaceAndPath(Summiteer.MOD_ID, "above_treeline"));
 
 	private Zones() {
 	}

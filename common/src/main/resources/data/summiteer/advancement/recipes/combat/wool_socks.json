@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:wool_socks"
+        "recipe": "summiteer:wool_socks"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

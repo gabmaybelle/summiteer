@@ -1,9 +1,9 @@
 package com.gabbymaybelle.summiteer.rope;
 
+import java.util.List;
 import com.gabbymaybelle.summiteer.Summiteer;
 import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.platform.Services;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.ChatFormatting;
@@ -11,10 +11,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.util.Prediction;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -23,7 +22,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -47,17 +45,17 @@ public final class Ropes {
 	public static final int MAX_LENGTH = RopeLength.MAX;
 
 	public static final Supplier<Block> ROPE_BLOCK = block("rope", properties -> properties
-			.mapColor(MapColor.WOOD).noCollision().noOcclusion().strength(0.4F).sound(SoundType.WOOL)
-			.pushReaction(PushReaction.POPPED), RopeBlock::new);
+			.mapColor(MapColor.WOOD).noCollission().noOcclusion().strength(0.4F).sound(SoundType.WOOL)
+			.pushReaction(PushReaction.DESTROY), RopeBlock::new);
 	public static final Supplier<Block> ANCHOR_BLOCK = block("anchor", properties -> properties
-			.mapColor(MapColor.METAL).noCollision().noOcclusion().strength(1.0F).sound(SoundType.METAL)
-			.pushReaction(PushReaction.POPPED), AnchorBlock::new);
+			.mapColor(MapColor.METAL).noCollission().noOcclusion().strength(1.0F).sound(SoundType.METAL)
+			.pushReaction(PushReaction.DESTROY), AnchorBlock::new);
 
 	public static final Supplier<Item> ROPE = item("rope", properties -> properties, RopeItem::new);
-	public static final Supplier<Item> ANCHOR = item("anchor", Item.Properties::useBlockDescriptionPrefix,
+	public static final Supplier<Item> ANCHOR = item("anchor", properties -> properties,
 			properties -> new DescribedBlockItem(ANCHOR_BLOCK.get(), properties));
 
-	private static final ResourceKey<CreativeModeTab> TOOLS_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("tools_and_utilities"));
+	private static final ResourceKey<CreativeModeTab> TOOLS_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.withDefaultNamespace("tools_and_utilities"));
 
 	private Ropes() {
 	}
@@ -161,7 +159,7 @@ public final class Ropes {
 			ItemStack stack = new ItemStack(ROPE.get(), Math.min(count, ROPE.get().getDefaultMaxStackSize()));
 			count -= stack.getCount();
 			if (!player.getInventory().add(stack)) {
-				player.drop(stack, false, Prediction.SERVER_ONLY);
+				player.drop(stack, false);
 			}
 		}
 	}
@@ -177,20 +175,34 @@ public final class Ropes {
 
 	/** A short message above the hotbar. */
 	static void tell(Player player, String key) {
-		player.sendOverlayMessage(Component.translatable("message.summiteer." + key));
+		player.displayClientMessage(Component.translatable("message.summiteer." + key), true);
 	}
 
 	private static Supplier<Block> block(String name, Function<BlockBehaviour.Properties, BlockBehaviour.Properties> properties, Function<BlockBehaviour.Properties, Block> kind) {
-		Identifier id = Summiteer.id(name);
+		ResourceLocation id = Summiteer.id(name);
 		ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, id);
-		return Services.PLATFORM.register(Registries.BLOCK, id, () -> kind.apply(properties.apply(BlockBehaviour.Properties.of()).setId(key)));
+		return Services.PLATFORM.register(Registries.BLOCK, id, () -> kind.apply(properties.apply(BlockBehaviour.Properties.of())));
 	}
 
 	/** The properties are only built inside the registration (see {@code Clothes.item}). */
 	private static Supplier<Item> item(String name, Function<Item.Properties, Item.Properties> properties, Function<Item.Properties, Item> kind) {
-		Identifier id = Summiteer.id(name);
+		ResourceLocation id = Summiteer.id(name);
 		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.apply(new Item.Properties()).setId(key)));
+		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.apply(new Item.Properties())));
+	}
+
+	/**
+	 * A box given for a block facing north, turned to face each way (1.21.1 has no
+	 * {@code Shapes.rotateHorizontal}). In sixteenths of a block, like {@code Block.box}.
+	 */
+	public static java.util.Map<net.minecraft.core.Direction, net.minecraft.world.phys.shapes.VoxelShape> horizontalBoxes(
+			double x1, double y1, double z1, double x2, double y2, double z2) {
+		java.util.Map<net.minecraft.core.Direction, net.minecraft.world.phys.shapes.VoxelShape> shapes = new java.util.EnumMap<>(net.minecraft.core.Direction.class);
+		shapes.put(net.minecraft.core.Direction.NORTH, Block.box(x1, y1, z1, x2, y2, z2));
+		shapes.put(net.minecraft.core.Direction.EAST, Block.box(16 - z2, y1, x1, 16 - z1, y2, x2));
+		shapes.put(net.minecraft.core.Direction.SOUTH, Block.box(16 - x2, y1, 16 - z2, 16 - x1, y2, 16 - z1));
+		shapes.put(net.minecraft.core.Direction.WEST, Block.box(z1, y1, 16 - x2, z2, y2, 16 - x1));
+		return shapes;
 	}
 
 	/** A block item with a grey line under its name, like {@link Gear.Described}. */
@@ -201,9 +213,8 @@ public final class Ropes {
 
 		@Override
 		@SuppressWarnings("deprecation") // Mojang's marker for "override, don't call"; vanilla's items do the same.
-		public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display,
-				Consumer<Component> builder, TooltipFlag flag) {
-			builder.accept(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+		public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> lines, TooltipFlag flag) {
+			lines.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
 		}
 	}
 }

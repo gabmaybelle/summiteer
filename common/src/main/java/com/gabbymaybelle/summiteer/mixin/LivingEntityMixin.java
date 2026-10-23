@@ -5,10 +5,11 @@ import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.rope.Ropes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
@@ -51,10 +52,26 @@ public abstract class LivingEntityMixin {
 		}
 	}
 
-	/** Crampons grip: no block is more slippery than ordinary ground under them. */
-	@ModifyArg(method = "travelInAir", at = @At(value = "INVOKE",
-			target = "Lnet/minecraft/world/entity/LivingEntity;computeModifiedFriction(FF)F"), index = 0)
+	/**
+	 * Crampons grip: no block is more slippery than ordinary ground under them. Vanilla reads the
+	 * block's friction in {@code travel}; NeoForge reads it through its own block-state method
+	 * instead, so there is one hook for each and whichever exists applies (the game test checks the
+	 * slide on ice on both loaders).
+	 */
+	@ModifyExpressionValue(method = "travel", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/block/Block;getFriction()F"), require = 0)
 	private float summiteer$crampons(float blockFriction) {
+		return cramponFriction(blockFriction);
+	}
+
+	@ModifyExpressionValue(method = "travel", at = @At(value = "INVOKE",
+			target = "Lnet/minecraft/world/level/block/state/BlockState;getFriction(Lnet/minecraft/world/level/LevelReader;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/entity/Entity;)F", remap = false), require = 0)
+	private float summiteer$cramponsNeoForge(float blockFriction) {
+		return cramponFriction(blockFriction);
+	}
+
+	@Unique
+	private float cramponFriction(float blockFriction) {
 		if (blockFriction > Gear.CRAMPON_FRICTION && Gear.wearsCrampons((LivingEntity) (Object) this)) {
 			return Gear.CRAMPON_FRICTION;
 		}

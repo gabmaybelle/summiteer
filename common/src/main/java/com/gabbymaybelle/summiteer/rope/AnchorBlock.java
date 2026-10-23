@@ -10,7 +10,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
@@ -24,7 +24,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The anchor: an iron piton hooked over a cliff edge. It sits on top of a block, facing the drop
@@ -36,7 +36,7 @@ import org.jspecify.annotations.Nullable;
 public class AnchorBlock extends Block {
 	public static final EnumProperty<Direction> FACING = HorizontalDirectionalBlock.FACING;
 	/** Drawn facing north (the drop on the north side); rotated for the others. */
-	private static final Map<Direction, VoxelShape> SHAPES = Shapes.rotateHorizontal(Block.box(5.0, 0.0, 0.0, 11.0, 4.0, 12.0));
+	private static final Map<Direction, VoxelShape> SHAPES = Ropes.horizontalBoxes(5.0, 0.0, 0.0, 11.0, 4.0, 12.0);
 
 	public AnchorBlock(BlockBehaviour.Properties properties) {
 		super(properties);
@@ -61,8 +61,8 @@ public class AnchorBlock extends Block {
 	}
 
 	@Override
-	protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos,
-			Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState, RandomSource random) {
+	protected BlockState updateShape(BlockState state, Direction directionToNeighbour, BlockState neighbourState, LevelAccessor level,
+			BlockPos pos, BlockPos neighbourPos) {
 		if (directionToNeighbour == Direction.DOWN && !state.canSurvive(level, pos)) {
 			return Blocks.AIR.defaultBlockState();
 		}

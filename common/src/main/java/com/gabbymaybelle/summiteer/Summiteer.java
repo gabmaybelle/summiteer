@@ -7,7 +7,7 @@ import com.gabbymaybelle.summiteer.gear.Gear;
 import com.gabbymaybelle.summiteer.platform.Services;
 import com.gabbymaybelle.summiteer.rope.Ropes;
 import com.gabbymaybelle.summiteer.weather.Weather;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +36,8 @@ public final class Summiteer {
 	}
 
 	/** An id in Summiteer's own namespace. */
-	public static Identifier id(String path) {
-		return Identifier.fromNamespaceAndPath(MOD_ID, path);
+	public static ResourceLocation id(String path) {
+		return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
 	}
 
 	/** Called by the loaders at the end of every server tick. */

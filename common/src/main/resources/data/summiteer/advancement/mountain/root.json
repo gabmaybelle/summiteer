@@ -18,7 +18,7 @@
       "translate": "advancements.summiteer.root.description"
     },
     "frame": "task",
-    "background": "minecraft:block/packed_ice",
+    "background": "minecraft:textures/block/packed_ice.png",
     "show_toast": false,
     "announce_to_chat": false
   },

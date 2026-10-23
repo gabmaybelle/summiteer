@@ -2,7 +2,9 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "key": {
-    "X": "#minecraft:wool"
+    "X": {
+      "tag": "minecraft:wool"
+    }
   },
   "pattern": [
     "X X",
@@ -10,6 +12,7 @@
     "XXX"
   ],
   "result": {
-    "id": "summiteer:parka"
+    "id": "summiteer:parka",
+    "count": 1
   }
 }

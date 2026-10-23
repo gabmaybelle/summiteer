@@ -94,7 +94,7 @@ public final class Weather {
 		}
 
 		boolean cold = Config.cold
-				&& Cold.isCold(zone, storm && !sheltered, level.isDarkOutside())
+				&& Cold.isCold(zone, storm && !sheltered, level.isNight())
 				&& !nearFire(level, pos);
 		if (cold) {
 			FREEZING.put(id, Cold.perSecond(Clothes.warmth(player)));
@@ -145,7 +145,7 @@ public final class Weather {
 		if (push > 0) {
 			player.push(dx * push, 0.05, dz * push);
 			// Players move themselves, so the client must be told about the push.
-			player.syncVelocity = true;
+			player.hurtMarked = true;
 		}
 	}
 
@@ -157,7 +157,7 @@ public final class Weather {
 		}
 		if (sinceWarn % 4 == 0) {
 			// Snowflakes from upwind, drifting the way the gust will push; only this player sees them.
-			level.sendParticles(player, ParticleTypes.SNOWFLAKE, false, false,
+			level.sendParticles(player, ParticleTypes.SNOWFLAKE, false,
 					player.getX() - dx * 3, player.getEyeY(), player.getZ() - dz * 3,
 					0, dx, 0.02, dz, 0.6);
 		}
@@ -181,7 +181,7 @@ public final class Weather {
 		int cap = player.getTicksRequiredToFreeze() + 20;
 		player.setTicksFrozen(Math.min(cap, player.getTicksFrozen() + 2 + extra));
 		if (!player.canFreeze() && player.isFullyFrozen() && player.tickCount % 40 == 0) {
-			player.hurtServer(player.level(), player.damageSources().freeze(), 1.0F);
+			player.hurt(player.damageSources().freeze(), 1.0F);
 		}
 	}
 
@@ -229,7 +229,7 @@ public final class Weather {
 
 	/** A storm here that falls as snow (it rains below and snows up top). */
 	public static boolean isSnowingAt(Level level, BlockPos pos) {
-		return level.isRaining() && level.getBiome(pos).value().getPrecipitationAt(pos, level.getSeaLevel()) == Biome.Precipitation.SNOW;
+		return level.isRaining() && level.getBiome(pos).value().getPrecipitationAt(pos) == Biome.Precipitation.SNOW;
 	}
 
 	private static boolean nearFire(ServerLevel level, BlockPos pos) {

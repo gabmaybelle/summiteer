@@ -34,17 +34,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
+import net.minecraft.world.entity.projectile.ThrownEnderpearl;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.PowderSnowBlock;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -54,7 +54,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModList;
 import top.theillusivec4.curios.api.CuriosApi;
-import top.theillusivec4.curios.api.CuriosSlotTypes;
+import top.theillusivec4.curios.api.CuriosApi;
 
 /**
  * The NeoForge jar's in-game test: the same checks as the Fabric game test (fabric/src/gametest),
@@ -76,7 +76,7 @@ final class SummiteerClientTest {
 		// A flat grass world comes with sheep, cows and pigs, and one wandering into a climb shoves the
 		// player off the rope (seen on CI): no animals, and none spawning.
 		run(mc -> onServer(mc, server -> {
-			serverCommand(server, "gamerule spawn_mobs false");
+			serverCommand(server, "gamerule doMobSpawning false");
 			serverCommand(server, "kill @e[type=!minecraft:player]");
 		}));
 
@@ -134,7 +134,7 @@ final class SummiteerClientTest {
 	private static final AtomicInteger SOUNDS = new AtomicInteger();
 	private static final SoundEventListener CHIME_LISTENER = (sound, events, range) -> {
 		SOUNDS.incrementAndGet();
-		if (sound.getIdentifier().equals(SoundEvents.NOTE_BLOCK_CHIME.value().location())) {
+		if (sound.getLocation().equals(SoundEvents.NOTE_BLOCK_CHIME.value().getLocation())) {
 			CHIMES.add(new Vec3(sound.getX(), sound.getY(), sound.getZ()));
 		}
 	};
@@ -150,7 +150,7 @@ final class SummiteerClientTest {
 		run(mc -> onServer(mc, server -> {
 			Config.wind = false;
 			Config.cold = false;
-			ServerLevel level = player(server).level();
+			ServerLevel level = player(server).serverLevel();
 			serverCommand(server, "weather clear");
 			CAIRNS[0] = new BlockPos(SITE_AT[0] + 4, SITE_AT[1] + 1, SITE_AT[2] + 4);
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, SITE_AT[0] + 20, SITE_AT[2] - 20);
@@ -172,13 +172,13 @@ final class SummiteerClientTest {
 		waitTicks(80);
 		run(mc -> onServer(mc, server -> {
 			// Light is worked out a little after a block is placed, so it is read once things settle.
-			CAIRN_RESULT[0] = player(server).level().getBrightness(LightLayer.BLOCK, CAIRNS[0]);
+			CAIRN_RESULT[0] = player(server).serverLevel().getBrightness(LightLayer.BLOCK, CAIRNS[0]);
 			CAIRN_RESULT[1] = chimesFrom(CAIRNS[0]);
 			serverCommand(server, "weather rain");
 		}));
 		waitTicks(180);
 		run(mc -> onServer(mc, server -> {
-			ServerLevel level = player(server).level();
+			ServerLevel level = player(server).serverLevel();
 			CAIRN_RESULT[2] = chimesFrom(CAIRNS[0]) - CAIRN_RESULT[1];
 			CAIRN_RESULT[3] = TrailCairnBlock.inWhiteout(level, CAIRNS[1]) ? 0 : 1;
 			CAIRN_RESULT[4] = TrailCairnBlock.inWhiteout(level, CAIRNS[0]) ? 1 : 0;
@@ -221,7 +221,7 @@ final class SummiteerClientTest {
 	private static void tent() {
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
-			ServerLevel level = player.level();
+			ServerLevel level = player.serverLevel();
 			Config.wind = false;
 			Config.cold = false;
 			serverCommand(server, "kill @e[type=!minecraft:player]");
@@ -239,11 +239,11 @@ final class SummiteerClientTest {
 			TENT_RESULT[0] = (level.getBlockState(TENT_AT[0]).is(red) ? "foot" : "no foot") + ", "
 					+ (level.getBlockState(TENT_AT[0].south()).is(red) ? "head" : "no head") + ", hand " + (player.getMainHandItem().isEmpty() ? "empty" : "full");
 			useTent(player, TENT_AT[0], false);
-			ServerPlayer.RespawnConfig config = player.getRespawnConfig();
-			TENT_RESULT[1] = config == null ? "none" : config.respawnData().pos().closerThan(TENT_AT[0], 2) ? "at the tent" : "elsewhere " + config.respawnData().pos();
+			BlockPos respawn = player.getRespawnPosition();
+			TENT_RESULT[1] = respawn == null ? "none" : respawn.closerThan(TENT_AT[0], 2) ? "at the tent" : "elsewhere " + respawn;
 			// The test world's clock is stopped, and a stopped clock doesn't skip the night, so it runs for this.
-			CLOCK_WAS_RUNNING[0] = level.getGameRules().get(GameRules.ADVANCE_TIME);
-			serverCommand(server, "gamerule advance_time true");
+			CLOCK_WAS_RUNNING[0] = level.getGameRules().getBoolean(GameRules.RULE_DAYLIGHT);
+			serverCommand(server, "gamerule doDaylightCycle true");
 			serverCommand(server, "time set midnight");
 		}));
 		// The sky darkens on the next tick after the time changes, so wait before lying down.
@@ -256,8 +256,8 @@ final class SummiteerClientTest {
 		waitTicks(130);
 		run(mc -> onServer(mc, server -> {
 			ServerPlayer player = player(server);
-			ServerLevel level = player.level();
-			TENT_RESULT[2] += level.isBrightOutside() ? ", morning" : ", still night";
+			ServerLevel level = player.serverLevel();
+			TENT_RESULT[2] += level.isDay() ? ", morning" : ", still night";
 			if (player.isSleeping()) {
 				player.stopSleeping();
 			}
@@ -270,10 +270,10 @@ final class SummiteerClientTest {
 					carried += player.getInventory().getItem(i).getCount();
 				}
 			}
-			TENT_RESULT[3] = (gone ? "taken down" : "still up") + ", " + carried + " carried, respawn " + (player.getRespawnConfig() == null ? "cleared" : "kept");
+			TENT_RESULT[3] = (gone ? "taken down" : "still up") + ", " + carried + " carried, respawn " + (player.getRespawnPosition() == null ? "cleared" : "kept");
 			player.getInventory().clearContent();
 			serverCommand(server, "difficulty normal");
-			serverCommand(server, "gamerule advance_time " + CLOCK_WAS_RUNNING[0]);
+			serverCommand(server, "gamerule doDaylightCycle " + CLOCK_WAS_RUNNING[0]);
 			serverCommand(server, "time set noon");
 			Config.wind = true;
 			Config.cold = true;
@@ -321,7 +321,7 @@ final class SummiteerClientTest {
 		BlockPos head = foot.south();
 		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(head), Direction.UP, head, false);
 		player.setShiftKeyDown(sneaking);
-		player.level().getBlockState(head).useWithoutItem(player.level(), player, hit);
+		player.serverLevel().getBlockState(head).useWithoutItem(player.serverLevel(), player, hit);
 		player.setShiftKeyDown(false);
 	}
 
@@ -334,7 +334,7 @@ final class SummiteerClientTest {
 	 */
 	private static void pearls() {
 		run(mc -> onServer(mc, server -> {
-			ServerLevel level = player(server).level();
+			ServerLevel level = player(server).serverLevel();
 			serverCommand(server, "weather clear");
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, SITE_AT[0] + 20, SITE_AT[2] + 20);
 			PEARLS[0] = throwUp(level, SITE_AT[0] + 0.5, SITE_AT[1] + 3, SITE_AT[2] + 0.5);
@@ -344,7 +344,7 @@ final class SummiteerClientTest {
 		}));
 		waitTicks(20);
 		run(mc -> onServer(mc, server -> {
-			double angle = Wind.direction(player(server).level().getGameTime());
+			double angle = Wind.direction(player(server).serverLevel().getGameTime());
 			PEARL_DRIFT[0] = (PEARLS[0].getX() - (SITE_AT[0] + 0.5)) * Math.cos(angle) + (PEARLS[0].getZ() - (SITE_AT[2] + 0.5)) * Math.sin(angle);
 			PEARL_DRIFT[1] = (PEARLS[1].getX() - (SITE_AT[0] + 20.5)) * Math.cos(angle) + (PEARLS[1].getZ() - (SITE_AT[2] + 20.5)) * Math.sin(angle);
 			PEARLS[0].discard();
@@ -359,7 +359,7 @@ final class SummiteerClientTest {
 
 	/** An ownerless ender pearl thrown straight up from a place (it lands without teleporting anyone). */
 	private static ThrownEnderpearl throwUp(ServerLevel level, double x, double y, double z) {
-		ThrownEnderpearl pearl = new ThrownEnderpearl(EntityTypes.ENDER_PEARL, level);
+		ThrownEnderpearl pearl = new ThrownEnderpearl(EntityType.ENDER_PEARL, level);
 		pearl.setPos(x, y, z);
 		pearl.setDeltaMovement(0, 1.0, 0);
 		level.addFreshEntity(pearl);
@@ -383,7 +383,7 @@ final class SummiteerClientTest {
 			serverCommand(server, "kill @e[type=!minecraft:player]");
 			Config.wind = false;
 			Config.cold = false;
-			ServerLevel level = player(server).level();
+			ServerLevel level = player(server).serverLevel();
 			int x = SITE_AT[0] + 30, z = SITE_AT[2];
 			int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x - 1, z) - 1;
 			serverCommand(server, "fill " + (x - 4) + " " + (ground + 1) + " " + (z - 3) + " " + (x + 5) + " " + (ground + 20) + " " + (z + 3) + " minecraft:air");
@@ -396,8 +396,8 @@ final class SummiteerClientTest {
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
 			useOnAnchor(player);
 			BlockPos top = anchorPos().west();
-			boolean knotAtBottom = level.getBlockState(top.below(12)).getValueOrElse(RopeBlock.KNOT, false) && !level.getBlockState(top).getValueOrElse(RopeBlock.KNOT, true)
-				&& level.getBlockState(top).getValueOrElse(RopeBlock.TOP, false) && !level.getBlockState(top.below()).getValueOrElse(RopeBlock.TOP, true);
+			boolean knotAtBottom = level.getBlockState(top.below(12)).getOptionalValue(RopeBlock.KNOT).orElse(false) && !level.getBlockState(top).getOptionalValue(RopeBlock.KNOT).orElse(true)
+				&& level.getBlockState(top).getOptionalValue(RopeBlock.TOP).orElse(false) && !level.getBlockState(top.below()).getOptionalValue(RopeBlock.TOP).orElse(true);
 			ROPE_RESULT[0] = ropeBlocks(level) + " hung, " + player.getMainHandItem().getCount() + " left in hand, knot " + (knotAtBottom ? "at the bottom, tied at the top" : "misplaced");
 		}));
 		run(mc -> check(ROPE_RESULT[0].equals("13 hung, 51 left in hand, knot at the bottom, tied at the top"), "Rope: right-clicking the anchor didn't hang rope to the ground (" + ROPE_RESULT[0] + ")"));
@@ -419,23 +419,23 @@ final class SummiteerClientTest {
 			player.setShiftKeyDown(true);
 			useOnAnchor(player);
 			player.setShiftKeyDown(false);
-			ROPE_RESULT[1] = ropeBlocks(player.level()) + " left hanging, " + ropeCarried(player) + " carried";
+			ROPE_RESULT[1] = ropeBlocks(player.serverLevel()) + " left hanging, " + ropeCarried(player) + " carried";
 
 			useOnAnchor(player);
 			player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 			serverCommand(server, "kill @e[type=item]");
 			player.gameMode.destroyBlock(anchorPos());
-			ROPE_RESULT[2] = ropeBlocks(player.level()) + " left hanging, " + ropeDropped(player.level()) + " dropped";
+			ROPE_RESULT[2] = ropeBlocks(player.serverLevel()) + " left hanging, " + ropeDropped(player.serverLevel()) + " dropped";
 
 			serverCommand(server, "kill @e[type=item]");
-			placeAnchor(player.level());
+			placeAnchor(player.serverLevel());
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Ropes.ROPE.get(), 64));
 			useOnAnchor(player);
-			player.level().destroyBlock(anchorPos().west().below(6), false);
+			player.serverLevel().destroyBlock(anchorPos().west().below(6), false);
 		}));
 		waitTicks(30);
 		run(mc -> onServer(mc, server -> {
-			ServerLevel level = player(server).level();
+			ServerLevel level = player(server).serverLevel();
 			ROPE_RESULT[3] = ropeBlocks(level) + " left hanging, " + ropeDropped(level) + " dropped";
 			Ropes.takeDown(level, anchorPos(), level.getBlockState(anchorPos()));
 			serverCommand(server, "kill @e[type=item]");
@@ -455,7 +455,7 @@ final class SummiteerClientTest {
 		waitTicks(20);
 		climbRope(2, false);
 		run(mc -> onServer(mc, server -> {
-			ServerLevel level = player(server).level();
+			ServerLevel level = player(server).serverLevel();
 			Ropes.takeDown(level, anchorPos(), level.getBlockState(anchorPos()));
 			serverCommand(server, "setblock " + (ANCHOR[0] - 1) + " " + (ANCHOR[1] - 12) + " " + ANCHOR[2] + " minecraft:air");
 			player(server).setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
@@ -553,7 +553,7 @@ final class SummiteerClientTest {
 			ServerPlayer player = player(server);
 			BlockPos at = player.blockPosition();
 			SITE_AT[0] = at.getX();
-			SITE_AT[1] = player.level().getSeaLevel() + Config.summitAboveSeaLevel + 2;
+			SITE_AT[1] = player.serverLevel().getSeaLevel() + Config.summitAboveSeaLevel + 2;
 			SITE_AT[2] = at.getZ();
 			serverCommand(server, "fill " + box(0, 0) + " minecraft:stone");
 			serverCommand(server, "gamemode survival @a");
@@ -747,7 +747,7 @@ final class SummiteerClientTest {
 				+ (SITE_AT[0] + 3) + " " + (SITE_AT[1] + 14) + " " + (SITE_AT[2] + 2) + " minecraft:stone")));
 		climb(3, true, false);
 		run(mc -> onServer(mc, server -> {
-			int floor = player(server).level().getSeaLevel() + 20;
+			int floor = player(server).serverLevel().getSeaLevel() + 20;
 			LOW_FLOOR[0] = floor;
 			serverCommand(server, "fill " + (SITE_AT[0] - 1) + " " + floor + " " + (SITE_AT[2] - 2) + " " + (SITE_AT[0] + 3) + " " + (floor + 8) + " " + (SITE_AT[2] + 2) + " minecraft:air");
 			serverCommand(server, "fill " + (SITE_AT[0] - 1) + " " + floor + " " + (SITE_AT[2] - 2) + " " + (SITE_AT[0] + 3) + " " + floor + " " + (SITE_AT[2] + 2) + " minecraft:stone");
@@ -836,14 +836,14 @@ final class SummiteerClientTest {
 			equip(player, "feet", ItemStack.EMPTY);
 			equip(player, "hands", new ItemStack(Clothes.CLIMBING_GLOVES.get()));
 			player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Gear.CRAMPONS.get()));
-			player.getMainHandItem().use(player.level(), player, InteractionHand.MAIN_HAND);
+			player.getMainHandItem().use(player.serverLevel(), player, InteractionHand.MAIN_HAND);
 			var curios = CuriosApi.getCuriosInventory(player).orElseThrow();
 			boolean cramponsOn = curios.getStacksHandler("feet").orElseThrow().getStacks().getStackInSlot(0).is(Gear.CRAMPONS.get())
 					&& player.getMainHandItem().isEmpty();
 			ItemStack fresh = new ItemStack(Clothes.CLIMBING_GLOVES.get());
 			fresh.set(DataComponents.CUSTOM_NAME, Component.literal("new"));
 			player.setItemInHand(InteractionHand.MAIN_HAND, fresh);
-			player.getMainHandItem().use(player.level(), player, InteractionHand.MAIN_HAND);
+			player.getMainHandItem().use(player.serverLevel(), player, InteractionHand.MAIN_HAND);
 			ItemStack worn = curios.getStacksHandler("hands").orElseThrow().getStacks().getStackInSlot(0);
 			ItemStack hand = player.getMainHandItem();
 			boolean swapped = worn.has(DataComponents.CUSTOM_NAME) && hand.is(Clothes.CLIMBING_GLOVES.get()) && !hand.has(DataComponents.CUSTOM_NAME);
@@ -875,8 +875,8 @@ final class SummiteerClientTest {
 		run(mc -> {
 			fov[0] = mc.options.fov().get();
 			mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
-			if (!mc.gui.hud.isHidden()) {
-				mc.gui.hud.toggle();
+			if (!mc.options.hideGui) {
+				mc.options.hideGui = !mc.options.hideGui;
 			}
 			mc.options.fov().set(45);
 		});
@@ -894,8 +894,8 @@ final class SummiteerClientTest {
 		ClientTest.screenshot();
 		run(mc -> {
 			mc.options.setCameraType(CameraType.FIRST_PERSON);
-			if (mc.gui.hud.isHidden()) {
-				mc.gui.hud.toggle();
+			if (mc.options.hideGui) {
+				mc.options.hideGui = !mc.options.hideGui;
 			}
 			mc.options.fov().set(fov[0]);
 			onServer(mc, server -> {
@@ -942,7 +942,7 @@ final class SummiteerClientTest {
 			ServerPlayer player = player(server);
 			player.setDeltaMovement(-0.5, 0, 0);
 			// Players move themselves, so the client must be told about the shove.
-			player.syncVelocity = true;
+			player.hurtMarked = true;
 		}));
 		waitTicks(40);
 		run(mc -> onServer(mc, server -> {
@@ -973,7 +973,7 @@ final class SummiteerClientTest {
 		var curios = CuriosApi.getCuriosInventory(player).orElseThrow(() -> new AssertionError("Curios gave the player no slots"));
 		check(curios.getStacksHandler(slot).isPresent(), "Curios gave the player no " + slot + " slot (slots: " + curios.getCurios().keySet() + ")");
 		if (!stack.isEmpty()) {
-			check(CuriosSlotTypes.getItemSlotTypes(stack, player).containsKey(slot), stack.getHoverName().getString() + " doesn't fit Curios' " + slot + " slot");
+			check(CuriosApi.getItemStackSlots(stack, player).containsKey(slot), stack.getHoverName().getString() + " doesn't fit Curios' " + slot + " slot");
 		}
 		curios.setEquippedCurio(slot, 0, stack);
 	}

@@ -1,4 +1,4 @@
-# Builds both jars on every push and pull request, then runs the in-game tests on a virtual
+# Builds both jars for Minecraft 1.21.1 on every push and pull request, then runs the in-game tests on a virtual
 # display (fabric/src/gametest and neoforge/src/clienttest), on their own and with each tall-terrain
 # mod, so a broken build, a crash in game or a clash with Tectonic or Terralith shows up straight
 # away. The built jars are attached to each run under "Artifacts", and the screenshots alongside.
@@ -35,7 +35,7 @@ jobs:
             test_args: '-PtestTectonic'
           - variant: 'with Terralith'
             test_args: '-PtestTerralith'
-    name: build (${{ matrix.variant }})
+    name: build (Minecraft 1.21.1, ${{ matrix.variant }})
     steps:
       - name: checkout repository
         uses: actions/checkout@v6
@@ -44,6 +44,7 @@ jobs:
       - name: setup jdk
         uses: actions/setup-java@v5
         with:
+          # The code is compiled for Java 21 (1.21.1's) by this newer JDK.
           java-version: '25'
           distribution: 'microsoft'
       - name: setup gradle (with caching)
@@ -52,21 +53,13 @@ jobs:
         run: chmod +x ./gradlew
       - name: build
         run: ./gradlew build
-      - name: install EGL
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libegl-mesa0
       - name: run game test
-        # 26.3 asks for an sRGB-capable window, which Xvfb's GLX can't give, so the game would
-        # hang at startup. Mesa's EGL can; SDL uses it with this set.
-        env:
-          SDL_VIDEO_FORCE_EGL: '1'
         timeout-minutes: 15
         run: xvfb-run -a ./gradlew :fabric:runClientGameTest ${{ matrix.test_args }}
       - name: run NeoForge game test
         # The same checks on the NeoForge jar. A failed check crashes the game, which fails this
         # step; the crash report is uploaded below.
         if: always()
-        env:
-          SDL_VIDEO_FORCE_EGL: '1'
         timeout-minutes: 15
         run: xvfb-run -a ./gradlew :neoforge:runClientTest ${{ matrix.test_args }}
       - name: capture game test screenshots

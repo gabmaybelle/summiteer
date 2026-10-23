@@ -8,8 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.TagKey;
@@ -17,10 +18,11 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.equipment.ArmorMaterial;
-import net.minecraft.world.item.equipment.ArmorType;
-import net.minecraft.world.item.equipment.EquipmentAsset;
-import net.minecraft.world.item.equipment.EquipmentAssets;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.item.ArmorItem.Type;
+import net.minecraft.world.item.ArmorMaterial;
+import net.minecraft.world.item.crafting.Ingredient;
 
 /**
  * The mountain clothes: a beanie, a parka, snow pants and wool socks (dyeable wool armour with
@@ -37,23 +39,28 @@ public final class Clothes {
 	/** What mends wool clothes on an anvil: any wool. */
 	public static final TagKey<Item> REPAIRS_WOOL = TagKey.create(Registries.ITEM, Summiteer.id("repairs_wool_armor"));
 
-	/** The look on the player: assets/summiteer/equipment/wool.json. */
-	private static final ResourceKey<EquipmentAsset> WOOL_ASSET = ResourceKey.create(EquipmentAssets.ROOT_ID, Summiteer.id("wool"));
+	/** The colour of undyed wool clothes, on the player and in the hand: a cream. */
+	public static final int UNDYED = -1647157;
 
-	/** Leather's numbers (durability, protection, enchanting), with wool to mend it. */
-	public static final ArmorMaterial WOOL = new ArmorMaterial(5,
-			Map.of(ArmorType.BOOTS, 1, ArmorType.LEGGINGS, 2, ArmorType.CHESTPLATE, 3, ArmorType.HELMET, 1, ArmorType.BODY, 3),
-			15, SoundEvents.ARMOR_EQUIP_LEATHER, 0.0F, 0.0F, REPAIRS_WOOL, WOOL_ASSET);
+	/**
+	 * Leather's numbers (protection, enchanting), with wool to mend it. The look on the player is one
+	 * dyeable layer, textures/models/armor/wool_layer_1.png (and _2 for the snow pants). Held directly
+	 * rather than registered: nothing looks it up by name.
+	 */
+	public static final Holder<ArmorMaterial> WOOL = Holder.direct(new ArmorMaterial(
+			Map.of(Type.BOOTS, 1, Type.LEGGINGS, 2, Type.CHESTPLATE, 3, Type.HELMET, 1, Type.BODY, 3),
+			15, SoundEvents.ARMOR_EQUIP_LEATHER, () -> Ingredient.of(REPAIRS_WOOL),
+			List.of(new ArmorMaterial.Layer(Summiteer.id("wool"), "", true)), 0.0F, 0.0F));
 
-	public static final Supplier<Item> BEANIE = armour("beanie", ArmorType.HELMET);
-	public static final Supplier<Item> PARKA = armour("parka", ArmorType.CHESTPLATE);
-	public static final Supplier<Item> SNOW_PANTS = armour("snow_pants", ArmorType.LEGGINGS);
-	public static final Supplier<Item> WOOL_SOCKS = armour("wool_socks", ArmorType.BOOTS);
+	public static final Supplier<Item> BEANIE = armour("beanie", Type.HELMET);
+	public static final Supplier<Item> PARKA = armour("parka", Type.CHESTPLATE);
+	public static final Supplier<Item> SNOW_PANTS = armour("snow_pants", Type.LEGGINGS);
+	public static final Supplier<Item> WOOL_SOCKS = armour("wool_socks", Type.BOOTS);
 	public static final Supplier<Item> CLIMBING_GLOVES = item("climbing_gloves", () -> new Item.Properties().stacksTo(1),
 			properties -> new Gear.Accessory(properties, SoundEvents.ARMOR_EQUIP_LEATHER));
 
 	/** Vanilla's Combat tab, beside the leather armour (its key is private in CreativeModeTabs). */
-	private static final ResourceKey<CreativeModeTab> COMBAT_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, Identifier.withDefaultNamespace("combat"));
+	private static final ResourceKey<CreativeModeTab> COMBAT_TAB = ResourceKey.create(Registries.CREATIVE_MODE_TAB, ResourceLocation.withDefaultNamespace("combat"));
 
 	private static final List<EquipmentSlot> ARMOUR_SLOTS = List.of(EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET);
 
@@ -65,6 +72,11 @@ public final class Clothes {
 		for (Supplier<Item> item : List.of(BEANIE, PARKA, SNOW_PANTS, WOOL_SOCKS, CLIMBING_GLOVES)) {
 			Services.PLATFORM.addToCreativeTab(COMBAT_TAB, item);
 		}
+	}
+
+	/** Whether this is one of the wool clothes (or the gloves), which are cream when undyed. */
+	public static boolean isWoolClothing(ItemStack stack) {
+		return stack.is(BEANIE.get()) || stack.is(PARKA.get()) || stack.is(SNOW_PANTS.get()) || stack.is(WOOL_SOCKS.get()) || stack.is(CLIMBING_GLOVES.get());
 	}
 
 	/** The warmth someone is wearing: one per warm piece in an armour slot, one for warm gloves. */
@@ -79,8 +91,9 @@ public final class Clothes {
 		return Cold.warmth(pieces, hands);
 	}
 
-	private static Supplier<Item> armour(String name, ArmorType type) {
-		return item(name, () -> new Item.Properties().humanoidArmor(WOOL, type), Item::new);
+	/** Leather's durability: 5 times each piece's own number. */
+	private static Supplier<Item> armour(String name, Type type) {
+		return item(name, () -> new Item.Properties().durability(type.getDurability(5)), properties -> new ArmorItem(WOOL, type, properties));
 	}
 
 	/**
@@ -88,8 +101,6 @@ public final class Clothes {
 	 * properties any earlier (at class load) touches registries that are already frozen.
 	 */
 	private static Supplier<Item> item(String name, Supplier<Item.Properties> properties, Function<Item.Properties, Item> kind) {
-		Identifier id = Summiteer.id(name);
-		ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
-		return Services.PLATFORM.register(Registries.ITEM, id, () -> kind.apply(properties.get().setId(key)));
+		return Services.PLATFORM.register(Registries.ITEM, Summiteer.id(name), () -> kind.apply(properties.get()));
 	}
 }

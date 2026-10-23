@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:parka"
+        "recipe": "summiteer:parka"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

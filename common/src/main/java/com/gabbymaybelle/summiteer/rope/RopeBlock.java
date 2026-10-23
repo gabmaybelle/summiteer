@@ -8,7 +8,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.ScheduledTickAccess;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Mirror;
@@ -35,7 +35,7 @@ public class RopeBlock extends Block {
 	/** The top piece, beside the anchor: drawn tied to the anchor's ring and over the edge. */
 	public static final BooleanProperty TOP = BooleanProperty.create("top");
 	/** Drawn hugging the north side; rotated for the others. */
-	private static final Map<Direction, VoxelShape> SHAPES = Shapes.rotateHorizontal(Block.box(6.0, 0.0, 0.0, 10.0, 16.0, 4.0));
+	private static final Map<Direction, VoxelShape> SHAPES = Ropes.horizontalBoxes(6.0, 0.0, 0.0, 10.0, 16.0, 4.0);
 
 	public RopeBlock(BlockBehaviour.Properties properties) {
 		super(properties);
@@ -59,10 +59,10 @@ public class RopeBlock extends Block {
 	}
 
 	@Override
-	protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos,
-			Direction directionToNeighbour, BlockPos neighbourPos, BlockState neighbourState, RandomSource random) {
+	protected BlockState updateShape(BlockState state, Direction directionToNeighbour, BlockState neighbourState, LevelAccessor level,
+			BlockPos pos, BlockPos neighbourPos) {
 		if (!state.canSurvive(level, pos)) {
-			ticks.scheduleTick(pos, this, 1);
+			level.scheduleTick(pos, this, 1);
 		}
 		if (directionToNeighbour == Direction.DOWN) {
 			state = state.setValue(KNOT, !neighbourState.is(this));
@@ -81,12 +81,12 @@ public class RopeBlock extends Block {
 	}
 
 	@Override
-	protected boolean propagatesSkylightDown(BlockState state) {
+	protected boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
 		return true;
 	}
 
 	@Override
-	protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
+	public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
 		return new ItemStack(Ropes.ROPE.get());
 	}
 

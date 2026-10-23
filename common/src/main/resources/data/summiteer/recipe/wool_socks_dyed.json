@@ -1,9 +1,0 @@
-{
-  "type": "minecraft:crafting_dye",
-  "dye": "#minecraft:dyes",
-  "group": "dyed_armor",
-  "result": {
-    "id": "summiteer:wool_socks"
-  },
-  "target": "summiteer:wool_socks"
-}

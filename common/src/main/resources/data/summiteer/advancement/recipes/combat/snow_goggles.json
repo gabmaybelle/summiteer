@@ -13,7 +13,7 @@
     },
     "has_the_recipe": {
       "conditions": {
-        "recipes": "summiteer:snow_goggles"
+        "recipe": "summiteer:snow_goggles"
       },
       "trigger": "minecraft:recipe_unlocked"
     }

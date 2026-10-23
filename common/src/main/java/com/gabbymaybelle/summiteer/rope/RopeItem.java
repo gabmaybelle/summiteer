@@ -33,7 +33,7 @@ public class RopeItem extends Gear.Described {
 		}
 		if (player.isSecondaryUseActive()) {
 			Ropes.reel(level, pos, player);
-			return InteractionResult.SUCCESS_SERVER;
+			return InteractionResult.SUCCESS;
 		}
 		int hanging = Ropes.hanging(level, pos, level.getBlockState(pos));
 		int added = Ropes.hang(level, pos, context.getItemInHand(), player.hasInfiniteMaterials());
@@ -43,6 +43,6 @@ public class RopeItem extends Gear.Described {
 		} else {
 			Ropes.tell(player, hanging >= Ropes.MAX_LENGTH ? "rope.full" : "rope.no_room");
 		}
-		return InteractionResult.SUCCESS_SERVER;
+		return InteractionResult.SUCCESS;
 	}
 }

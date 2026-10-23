@@ -1,7 +1,7 @@
 package com.gabbymaybelle.summiteer.mixin;
 
 import com.gabbymaybelle.summiteer.weather.Weather;
-import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
+import net.minecraft.world.entity.projectile.ThrownEnderpearl;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
